@@ -6,22 +6,38 @@ from .models import ValidationResult
 
 class Store:
     def __init__(self, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise RuntimeError(
+                f"RMV data directory cannot be created or accessed: {path.parent}. "
+                "Check the container volume ownership/permissions."
+            ) from exc
+
+        if not path.parent.is_dir():
+            raise RuntimeError(f"RMV data path is not a directory: {path.parent}")
+
         self.path = path
-        with self._connect() as db:
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS validations (
-                    torrent_hash TEXT PRIMARY KEY,
-                    torrent_name TEXT NOT NULL,
-                    category TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    reason TEXT NOT NULL,
-                    video_files INTEGER NOT NULL,
-                    blocked_files INTEGER NOT NULL,
-                    largest_video_bytes INTEGER NOT NULL,
-                    checked_at TEXT NOT NULL
-                )
-            """)
+        try:
+            with self._connect() as db:
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS validations (
+                        torrent_hash TEXT PRIMARY KEY,
+                        torrent_name TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        reason TEXT NOT NULL,
+                        video_files INTEGER NOT NULL,
+                        blocked_files INTEGER NOT NULL,
+                        largest_video_bytes INTEGER NOT NULL,
+                        checked_at TEXT NOT NULL
+                    )
+                """)
+        except sqlite3.OperationalError as exc:
+            raise RuntimeError(
+                f"RMV cannot open SQLite database at {self.path}. "
+                "The /data volume must be writable by container UID 10001."
+            ) from exc
 
     def _connect(self):
         return sqlite3.connect(self.path)
