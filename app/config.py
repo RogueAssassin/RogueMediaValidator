@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     qb_username: str = ""
     qb_password: str = ""
     qb_categories: str = "radarr,sonarr"
+    qb_managed_states: str = "pausedDL,stoppedDL"
 
     allowed_video_extensions: str = "mkv,mp4,m4v,avi,ts,m2ts,webm,mov"
     allowed_support_extensions: str = "srt,ass,ssa,sub,idx,nfo,jpg,jpeg,png,txt"
@@ -48,6 +49,10 @@ class Settings(BaseSettings):
     @property
     def categories(self) -> frozenset[str]:
         return self._csv(self.qb_categories)
+
+    @property
+    def managed_states(self) -> frozenset[str]:
+        return self._csv(self.qb_managed_states)
 
 
 @lru_cache

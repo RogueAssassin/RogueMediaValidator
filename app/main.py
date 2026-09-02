@@ -34,22 +34,60 @@ app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
+def health_payload() -> dict:
+    diagnostics = service.snapshot()
+    if service.last_error:
+        status = "degraded"
+    elif service.last_success_at:
+        status = "healthy"
+    else:
+        status = "starting"
+    return {
+        "status": status,
+        "version": __version__,
+        "dry_run": settings.dry_run,
+        "qbittorrent_connected": bool(service.last_success_at and not service.last_error),
+        "qbittorrent_version": service.last_qb_version,
+        "last_error": service.last_error,
+        "last_success_at": service.last_success_at,
+        "diagnostics": diagnostics,
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"stats": store.stats(), "recent": store.recent(30), "settings": settings, "version": __version__},
+        context={
+            "stats": store.stats(),
+            "recent": store.recent(30),
+            "settings": settings,
+            "version": __version__,
+            "health": health_payload(),
+        },
     )
 
 
 @app.get("/api/health")
 async def health():
+    return health_payload()
+
+
+@app.get("/api/diagnostics")
+async def diagnostics():
     return {
-        "status": "healthy" if not service.last_error else "degraded",
         "version": __version__,
-        "dry_run": settings.dry_run,
-        "last_error": service.last_error,
+        "mode": "dry-run" if settings.dry_run else "enforcing",
+        "qbittorrent": {
+            "url": settings.qb_url,
+            "connected": bool(service.last_success_at and not service.last_error),
+            "version": service.last_qb_version,
+            "categories": sorted(settings.categories),
+            "managed_states": sorted(settings.managed_states),
+        },
+        "service": service.snapshot(),
+        "storage": store.stats(),
     }
 
 

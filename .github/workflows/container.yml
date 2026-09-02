@@ -31,7 +31,7 @@ jobs:
           images: ghcr.io/rogueassassin/roguemediavalidator
           tags: |
             type=raw,value=testing,enable=${{ github.ref == 'refs/heads/testing' }}
-            type=raw,value=0.1.0-testing,enable=${{ github.ref == 'refs/heads/testing' }}
+            type=raw,value=0.1.1-testing,enable=${{ github.ref == 'refs/heads/testing' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=0.1.0,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag

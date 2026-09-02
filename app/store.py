@@ -30,9 +30,18 @@ class Store:
                         video_files INTEGER NOT NULL,
                         blocked_files INTEGER NOT NULL,
                         largest_video_bytes INTEGER NOT NULL,
-                        checked_at TEXT NOT NULL
+                        checked_at TEXT NOT NULL,
+                        enforced INTEGER NOT NULL DEFAULT 0
                     )
                 """)
+                columns = {
+                    row[1] for row in db.execute("PRAGMA table_info(validations)").fetchall()
+                }
+                if "enforced" not in columns:
+                    db.execute(
+                        "ALTER TABLE validations "
+                        "ADD COLUMN enforced INTEGER NOT NULL DEFAULT 0"
+                    )
         except sqlite3.OperationalError as exc:
             raise RuntimeError(
                 f"RMV cannot open SQLite database at {self.path}. "
@@ -42,13 +51,16 @@ class Store:
     def _connect(self):
         return sqlite3.connect(self.path)
 
-    def save(self, result: ValidationResult):
+    def save(self, result: ValidationResult, *, enforced: bool = False):
         data = result.as_dict()
+        data["enforced"] = int(enforced)
         with self._connect() as db:
             db.execute("""
                 INSERT OR REPLACE INTO validations
-                (torrent_hash,torrent_name,category,status,reason,video_files,blocked_files,largest_video_bytes,checked_at)
-                VALUES (:torrent_hash,:torrent_name,:category,:status,:reason,:video_files,:blocked_files,:largest_video_bytes,:checked_at)
+                (torrent_hash,torrent_name,category,status,reason,video_files,blocked_files,
+                 largest_video_bytes,checked_at,enforced)
+                VALUES (:torrent_hash,:torrent_name,:category,:status,:reason,:video_files,
+                        :blocked_files,:largest_video_bytes,:checked_at,:enforced)
             """, data)
 
     def has(self, torrent_hash: str) -> bool:
@@ -56,6 +68,13 @@ class Store:
             return db.execute(
                 "SELECT 1 FROM validations WHERE torrent_hash=?", (torrent_hash,)
             ).fetchone() is not None
+
+    def has_enforced(self, torrent_hash: str) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT enforced FROM validations WHERE torrent_hash=?", (torrent_hash,)
+            ).fetchone()
+        return bool(row and row[0])
 
     def recent(self, limit: int = 50) -> list[dict]:
         with self._connect() as db:
@@ -70,9 +89,13 @@ class Store:
             rows = db.execute(
                 "SELECT status, COUNT(*) FROM validations GROUP BY status"
             ).fetchall()
+            enforced = db.execute(
+                "SELECT COUNT(*) FROM validations WHERE enforced=1"
+            ).fetchone()[0]
         counts = {k: v for k, v in rows}
         return {
             "total": sum(counts.values()),
             "approved": counts.get("approved", 0),
             "blocked": counts.get("blocked", 0),
+            "enforced": enforced,
         }

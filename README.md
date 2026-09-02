@@ -13,10 +13,10 @@
   </tr>
 </table>
 
-[![Stable](https://img.shields.io/badge/STABLE-0.1.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/main)
+[![Stable](https://img.shields.io/badge/TESTING-0.1.1-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/main)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
-[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Amain)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
+[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
 ![Runtime](https://img.shields.io/badge/RUNTIME-PYTHON%203.12-ff4fc8?style=for-the-badge&labelColor=45464d)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
@@ -27,13 +27,13 @@ RogueMediaValidator (RMV) is a lightweight pre-download validation service for q
 
 ## Stable release
 
-**v0.1.0** is the first stable RMV base release. The tested branch has been promoted to `main`, and the production container channel is:
+**v0.1.1-testing** is the live-server readiness stage built on the stable v0.1.0 base. The tested branch has been promoted to `main`, and the production container channel is:
 
 ```text
-ghcr.io/rogueassassin/roguemediavalidator:latest
+ghcr.io/rogueassassin/roguemediavalidator:testing
 ```
 
-The `testing` branch remains reserved for future development.
+The `testing` branch now adds managed-state gating, live diagnostics, session recovery, and safe dry-run-to-enforcement reprocessing.
 
 ## Why RMV
 
@@ -74,7 +74,7 @@ Stable:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:latest
-ghcr.io/rogueassassin/roguemediavalidator:0.1.0
+ghcr.io/rogueassassin/roguemediavalidator:0.1.1-testing
 ```
 
 Development:
