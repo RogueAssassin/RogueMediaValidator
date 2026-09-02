@@ -7,13 +7,16 @@ services:
     ports:
       - "${RMV_HTTP_PORT:-7811}:7811"
     volumes:
-      - ./data:/data
+      - roguemediavalidator-data:/data:U
     networks:
       - media-net
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+volumes:
+  roguemediavalidator-data:
 
 networks:
   media-net:
