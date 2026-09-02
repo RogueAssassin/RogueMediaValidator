@@ -16,6 +16,8 @@ Live inspection stage.
 
 ### Changed
 
+- Reduced normal runtime log I/O by suppressing qBittorrent HTTP client request logs and Uvicorn access logs; RMV validation decisions and warnings/errors remain visible.
+- Added configurable `RMV_LOG_LEVEL` (default `INFO`).
 - `RMV_QB_MANAGED_STATES` is replaced by `RMV_QB_INSPECT_ALL_STATES` and `RMV_QB_ACTION_STATES`.
 - Validation history labels enforcement-complete rows as Handled rather than implying every row caused an action.
 - Testing image advances to `0.1.2-testing`.
