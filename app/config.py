@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/data")
     poll_seconds: int = 2
     dry_run: bool = True
+    log_level: str = "INFO"
 
     qb_url: str = "http://qbittorrent:8080"
     qb_username: str = ""
