@@ -13,8 +13,13 @@ from .qbittorrent import QBittorrentClient
 from .service import ValidationService
 from .store import Store
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 settings = get_settings()
+log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+# Keep the fast validation loop quiet: dependency request logs add noise and I/O
+# without helping normal operation. RMV still logs validation decisions and errors.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 store = Store(settings.data_dir / "rmv.db")
 qb = QBittorrentClient(settings.qb_url, settings.qb_username, settings.qb_password)
 service = ValidationService(settings, store, qb)
