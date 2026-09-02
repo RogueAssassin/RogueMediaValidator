@@ -1,6 +1,6 @@
 services:
   roguemediavalidator:
-    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:testing}
+    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:latest}
     container_name: roguemediavalidator
     restart: unless-stopped
     env_file: .env
