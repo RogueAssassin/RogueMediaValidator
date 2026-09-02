@@ -21,7 +21,7 @@
   </aside>
   <main>
     <header>
-      <div><h1>Media Validation</h1><p>Only approved video payloads are allowed through.</p></div>
+      <div><h1>Media Validation</h1><p>Inspect every Arr torrent early; act only while it is in the download lifecycle.</p></div>
       <div class="pill">qBittorrent · {{ health.qbittorrent_version or 'connecting' }}</div>
     </header>
     <section class="cards">
@@ -33,12 +33,12 @@
     <section class="panel" id="activity">
       <div class="panel-head"><h2>Recent validation activity</h2><span>Actual torrent file metadata</span></div>
       <div class="table-wrap"><table><thead><tr><th>Status</th><th>Release</th><th>Category</th><th>Videos</th><th>Mode</th><th>Result</th></tr></thead><tbody>
-      {% for row in recent %}<tr><td><span class="tag {{ row.status }}">{{ row.status }}</span></td><td>{{ row.torrent_name }}</td><td>{{ row.category }}</td><td>{{ row.video_files }}</td><td>{{ 'Enforced' if row.enforced else 'Audit' }}</td><td>{{ row.reason }}</td></tr>{% else %}<tr><td colspan="6" class="empty">No eligible torrents have been validated yet.</td></tr>{% endfor %}
+      {% for row in recent %}<tr><td><span class="tag {{ row.status }}">{{ row.status }}</span></td><td>{{ row.torrent_name }}</td><td>{{ row.category }}</td><td>{{ row.video_files }}</td><td>{{ 'Handled' if row.enforced else 'Audit' }}</td><td>{{ row.reason }}</td></tr>{% else %}<tr><td colspan="6" class="empty">No in-scope torrents have been validated yet.</td></tr>{% endfor %}
       </tbody></table></div>
     </section>
     <section class="grid2" id="policy">
-      <article class="panel"><h2>Live gate</h2><p><strong>qBittorrent:</strong> {{ 'Connected' if health.qbittorrent_connected else health.status }}</p><p><strong>Managed states:</strong> {{ settings.qb_managed_states }}</p><p><strong>Categories:</strong> {{ settings.qb_categories }}</p></article>
-      <article class="panel"><h2>Video policy</h2><p><strong>Required:</strong> {{ settings.allowed_video_extensions }}</p><p><strong>Minimum size:</strong> {{ settings.min_video_size_mb }} MB</p><p>Unknown or executable/script payloads fail closed.</p></article>
+      <article class="panel"><h2>Live inspection</h2><p><strong>qBittorrent:</strong> {{ 'Connected' if health.qbittorrent_connected else health.status }}</p><p><strong>Inspect states:</strong> {{ 'All' if settings.qb_inspect_all_states else 'Action states only' }}</p><p><strong>Poll interval:</strong> {{ settings.poll_seconds }}s</p><p><strong>Categories:</strong> {{ settings.qb_categories }}</p></article>
+      <article class="panel"><h2>Action safety</h2><p><strong>Action states:</strong> {{ settings.qb_action_states }}</p><p>Blocked completed/seeding torrents are recorded but never deleted.</p><p>Paused/stopped approved torrents can be resumed after enforcement is enabled.</p></article>
     </section>
   </main>
 </div>

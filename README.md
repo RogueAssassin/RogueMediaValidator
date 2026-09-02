@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Stable](https://img.shields.io/badge/TESTING-0.1.1-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/main)
+[![Stable](https://img.shields.io/badge/TESTING-0.1.2-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/main)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
@@ -27,13 +27,13 @@ RogueMediaValidator (RMV) is a lightweight pre-download validation service for q
 
 ## Stable release
 
-**v0.1.1-testing** is the live-server readiness stage built on the stable v0.1.0 base. The tested branch has been promoted to `main`, and the production container channel is:
+**v0.1.2-testing** is the live-server readiness stage built on the stable v0.1.0 base. The tested branch has been promoted to `main`, and the production container channel is:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:testing
 ```
 
-The `testing` branch now adds managed-state gating, live diagnostics, session recovery, and safe dry-run-to-enforcement reprocessing.
+The `testing` branch now inspects every Radarr/Sonarr torrent state, while restricting resume/delete actions to active download-lifecycle states. This catches releases as soon as qBittorrent exposes their file metadata without risking completed/seeding torrents.
 
 ## Why RMV
 
@@ -74,7 +74,7 @@ Stable:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:latest
-ghcr.io/rogueassassin/roguemediavalidator:0.1.1-testing
+ghcr.io/rogueassassin/roguemediavalidator:0.1.2-testing
 ```
 
 Development:
@@ -148,3 +148,10 @@ RMV is designed to integrate with [RogueDashboard](https://github.com/RogueAssas
 ## License
 
 MIT
+
+
+## 0.1.2 testing live-inspection model
+
+RMV now separates **inspection** from **action**. Every torrent in configured Arr categories is inspected when its file metadata becomes available, regardless of qBittorrent state. Actions remain limited to download-lifecycle states such as paused/stopped, downloading, stalled, metadata, queued and checking states. Completed or seeding torrents can be audited but are never deleted by RMV.
+
+The default poll interval is 2 seconds. For the strongest pre-download gate, configure Radarr/Sonarr/qBittorrent so automated grabs arrive paused; RMV will still inspect an active download if it starts before the first validation cycle.

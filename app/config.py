@@ -11,14 +11,18 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 7811
     data_dir: Path = Path("/data")
-    poll_seconds: int = 5
+    poll_seconds: int = 2
     dry_run: bool = True
 
     qb_url: str = "http://qbittorrent:8080"
     qb_username: str = ""
     qb_password: str = ""
     qb_categories: str = "radarr,sonarr"
-    qb_managed_states: str = "pausedDL,stoppedDL"
+    qb_inspect_all_states: bool = True
+    qb_action_states: str = (
+        "pausedDL,stoppedDL,downloading,stalledDL,metaDL,queuedDL,"
+        "checkingDL,forcedDL,allocating,checkingResumeData,moving"
+    )
 
     allowed_video_extensions: str = "mkv,mp4,m4v,avi,ts,m2ts,webm,mov"
     allowed_support_extensions: str = "srt,ass,ssa,sub,idx,nfo,jpg,jpeg,png,txt"
@@ -51,8 +55,8 @@ class Settings(BaseSettings):
         return self._csv(self.qb_categories)
 
     @property
-    def managed_states(self) -> frozenset[str]:
-        return self._csv(self.qb_managed_states)
+    def action_states(self) -> frozenset[str]:
+        return self._csv(self.qb_action_states)
 
 
 @lru_cache

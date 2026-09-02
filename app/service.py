@@ -10,13 +10,22 @@ from .validator import validate_payload
 log = logging.getLogger("rmv")
 
 
-def torrent_is_eligible(torrent: dict, settings: Settings) -> bool:
+def torrent_in_scope(torrent: dict, settings: Settings) -> bool:
     category = str(torrent.get("category", "")).lower()
-    state = str(torrent.get("state", "")).lower()
+    return not settings.categories or category in settings.categories
 
-    if settings.categories and category not in settings.categories:
+
+def torrent_actionable(torrent: dict, settings: Settings) -> bool:
+    state = str(torrent.get("state", "")).lower()
+    return not settings.action_states or state in settings.action_states
+
+
+def torrent_should_inspect(torrent: dict, settings: Settings) -> bool:
+    if not torrent_in_scope(torrent, settings):
         return False
-    return not settings.managed_states or state in settings.managed_states
+    if settings.qb_inspect_all_states:
+        return True
+    return torrent_actionable(torrent, settings)
 
 
 class ValidationService:
@@ -30,7 +39,8 @@ class ValidationService:
         self.last_success_at: str | None = None
         self.last_qb_version: str | None = None
         self.last_seen = 0
-        self.last_eligible = 0
+        self.last_in_scope = 0
+        self.last_actionable = 0
         self.last_validated = 0
 
     async def run_once(self):
@@ -39,15 +49,20 @@ class ValidationService:
 
         torrents = await self.qb.torrents()
         self.last_seen = len(torrents)
-        self.last_eligible = 0
+        self.last_in_scope = 0
+        self.last_actionable = 0
         self.last_validated = 0
 
         for torrent in torrents:
             torrent_hash = str(torrent.get("hash", ""))
-            if not torrent_hash or not torrent_is_eligible(torrent, self.settings):
+            if not torrent_hash or not torrent_should_inspect(torrent, self.settings):
                 continue
 
-            self.last_eligible += 1
+            self.last_in_scope += 1
+            actionable = torrent_actionable(torrent, self.settings)
+            if actionable:
+                self.last_actionable += 1
+
             if self.settings.dry_run:
                 if self.store.has(torrent_hash):
                     continue
@@ -56,6 +71,8 @@ class ValidationService:
 
             files = await self.qb.files(torrent_hash)
             if not files:
+                # Metadata/file list is not ready yet. Leave it unrecorded so
+                # the next poll retries as soon as qBittorrent exposes files.
                 continue
 
             result = validate_payload(
@@ -67,15 +84,38 @@ class ValidationService:
             )
             self.store.save(result, enforced=False)
             self.last_validated += 1
-            log.info("%s %s: %s", result.status.upper(), result.torrent_name, result.reason)
+            state = str(torrent.get("state", "unknown"))
+            log.info(
+                "%s %s [%s]: %s",
+                result.status.upper(),
+                result.torrent_name,
+                state,
+                result.reason,
+            )
 
             if self.settings.dry_run:
                 continue
 
-            if result.status == "approved" and self.settings.auto_resume_valid:
-                await self.qb.resume(torrent_hash)
-            elif result.status == "blocked" and self.settings.remove_rejected:
+            if result.status == "approved":
+                if (
+                    actionable
+                    and state.lower() in {"pauseddl", "stoppeddl"}
+                    and self.settings.auto_resume_valid
+                ):
+                    await self.qb.resume(torrent_hash)
+            elif (
+                result.status == "blocked"
+                and actionable
+                and self.settings.remove_rejected
+            ):
                 await self.qb.delete(torrent_hash, self.settings.delete_rejected_data)
+            elif result.status == "blocked" and not actionable:
+                log.warning(
+                    "BLOCKED payload found in non-actionable state %s for %s; "
+                    "recorded only, no torrent action taken",
+                    state,
+                    result.torrent_name,
+                )
 
             self.store.save(result, enforced=True)
 
@@ -100,7 +140,8 @@ class ValidationService:
             "last_success_at": self.last_success_at,
             "qbittorrent_version": self.last_qb_version,
             "torrents_seen": self.last_seen,
-            "eligible_torrents": self.last_eligible,
+            "in_scope_torrents": self.last_in_scope,
+            "actionable_torrents": self.last_actionable,
             "validated_this_cycle": self.last_validated,
         }
 
