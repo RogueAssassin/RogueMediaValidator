@@ -1,4 +1,3 @@
-import json
 import sqlite3
 from pathlib import Path
 
@@ -38,16 +37,26 @@ class Store:
 
     def has(self, torrent_hash: str) -> bool:
         with self._connect() as db:
-            return db.execute("SELECT 1 FROM validations WHERE torrent_hash=?", (torrent_hash,)).fetchone() is not None
+            return db.execute(
+                "SELECT 1 FROM validations WHERE torrent_hash=?", (torrent_hash,)
+            ).fetchone() is not None
 
     def recent(self, limit: int = 50) -> list[dict]:
         with self._connect() as db:
             db.row_factory = sqlite3.Row
-            rows = db.execute("SELECT * FROM validations ORDER BY checked_at DESC LIMIT ?", (limit,)).fetchall()
+            rows = db.execute(
+                "SELECT * FROM validations ORDER BY checked_at DESC LIMIT ?", (limit,)
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def stats(self) -> dict:
         with self._connect() as db:
-            rows = db.execute("SELECT status, COUNT(*) FROM validations GROUP BY status").fetchall()
+            rows = db.execute(
+                "SELECT status, COUNT(*) FROM validations GROUP BY status"
+            ).fetchall()
         counts = {k: v for k, v in rows}
-        return {"total": sum(counts.values()), "approved": counts.get("approved", 0), "blocked": counts.get("blocked", 0)}
+        return {
+            "total": sum(counts.values()),
+            "approved": counts.get("approved", 0),
+            "blocked": counts.get("blocked", 0),
+        }

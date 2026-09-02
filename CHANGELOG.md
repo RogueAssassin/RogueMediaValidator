@@ -19,5 +19,5 @@ Initial RogueMediaValidator testing foundation.
 
 ### Fixed
 
-- CI Ruff failure caused by the `ValidationResult` import appearing after the `TYPE_CHECKING` block.
+- CI Ruff failures caused by the `ValidationResult` import ordering and an unused `json` import in the SQLite store.
 - Container health check and Compose mapping now use the dedicated RMV internal port.
