@@ -3,13 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090d14">
   <title>RogueMediaValidator</title>
+  <link rel="icon" type="image/png" href="/static/icons/roguemediavalidator-approved-128.png">
+  <link rel="apple-touch-icon" href="/static/icons/roguemediavalidator-approved-128.png">
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <div class="shell">
   <aside>
-    <div class="brand"><div class="mark">RMV</div><div><strong>RogueMediaValidator</strong><small>Validate. Protect. Automate.</small></div></div>
+    <div class="brand">
+      <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="52" height="52" alt="RMV">
+      <div><strong>RogueMediaValidator</strong><small>Validate. Protect. Automate.</small></div>
+    </div>
     <nav><a class="active">Dashboard</a><a href="#activity">Activity</a><a href="#policy">Policy</a><a href="/api/health">API</a></nav>
     <div class="status"><span></span> Validator online<br><small>v{{ version }} · {% if settings.dry_run %}Dry run{% else %}Enforcing{% endif %}</small></div>
   </aside>

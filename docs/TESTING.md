@@ -1,10 +1,26 @@
-# Testing Guide
+# Testing RogueMediaValidator
 
-1. Configure qBittorrent and leave `RMV_DRY_RUN=true`.
-2. Ensure Radarr/Sonarr automated torrents arrive paused.
-3. Test a normal media torrent and verify RMV records `approved` without changing it.
-4. Test a controlled fixture/mocked torrent containing a blocked extension and verify RMV records `blocked`.
-5. Review the dashboard and logs.
-6. Set `RMV_DRY_RUN=false` only after observed decisions match policy.
+Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidator:testing` image for development validation.
 
-Never use unknown executable payloads as test fixtures. Unit tests cover executable filenames without executing or downloading them.
+## Safe validation sequence
+
+1. Copy `.env.example` to `.env`.
+2. Configure qBittorrent credentials and keep `RMV_DRY_RUN=true`.
+3. Keep RMV's internal port at 7811. Change only `RMV_HTTP_PORT` if the host port must move.
+4. Start RMV on the same private container network as qBittorrent.
+5. Add a known-good paused media torrent and confirm it is reported as approved.
+6. Add synthetic/bad metadata in automated tests and confirm executable, unknown, missing-video and undersized-video cases are blocked.
+7. Review the dashboard and `/api/health`.
+8. Only after live decisions are correct, set `RMV_DRY_RUN=false`.
+
+## CI gates
+
+Every push/PR to `main` or `testing` must pass:
+
+- Ruff static checks
+- pytest policy tests
+- Python compile validation
+- Compose configuration validation
+- container build
+
+The container workflow publishes amd64/arm64 images. The `testing` branch publishes `:testing` and `:0.1.0-testing`; `main` publishes `:latest` and `:0.1.0`.

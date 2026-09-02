@@ -1,14 +1,23 @@
 # Changelog
 
-## 0.1.0 - Testing
+## 0.1.0 - testing
 
-- Initial RogueMediaValidator implementation.
-- Added strict torrent payload inspection against video/support allowlists.
-- Added hard rejection for executable and scripting extensions.
-- Added minimum video size validation and fail-closed unknown extension handling.
-- Added qBittorrent authentication, torrent/file inspection, resume and delete actions.
-- Added dry-run mode as the safe default.
-- Added persistent SQLite validation history.
-- Added responsive Rogue-style dashboard and health/stats/activity APIs.
-- Added hardened non-root container image and Docker/Podman compose definitions.
-- Added CI tests, Ruff validation and multi-architecture GHCR publishing workflow.
+Initial RogueMediaValidator testing foundation.
+
+### Added
+
+- qBittorrent metadata polling and category scoping.
+- Strict approved-video and supporting-file allowlists.
+- Executable/script blocklist and fail-closed unknown-extension handling.
+- Minimum video-size validation.
+- Dry-run safety mode and enforcement controls.
+- SQLite audit history and responsive dashboard.
+- Docker/Podman deployment and GHCR multi-architecture publishing.
+- Approved RMV icon integrated into the UI and GitHub presentation.
+- Permanent `testing` branch model matching the Rogue project family.
+- Internal application port 7811 with independently configurable `RMV_HTTP_PORT`.
+
+### Fixed
+
+- CI Ruff failure caused by the `ValidationResult` import appearing after the `TYPE_CHECKING` block.
+- Container health check and Compose mapping now use the dedicated RMV internal port.

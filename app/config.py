@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     app_name: str = "RogueMediaValidator"
     host: str = "0.0.0.0"
-    port: int = 8080
+    port: int = 7811
     data_dir: Path = Path("/data")
     poll_seconds: int = 5
     dry_run: bool = True

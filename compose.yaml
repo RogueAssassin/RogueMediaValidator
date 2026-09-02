@@ -1,11 +1,11 @@
 services:
   roguemediavalidator:
-    image: ghcr.io/rogueassassin/roguemediavalidator:testing
+    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:testing}
     container_name: roguemediavalidator
     restart: unless-stopped
     env_file: .env
     ports:
-      - "7810:8080"
+      - "${RMV_HTTP_PORT:-7811}:7811"
     volumes:
       - ./data:/data
     networks:

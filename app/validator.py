@@ -1,9 +1,10 @@
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
+from .models import ValidationResult
+
 if TYPE_CHECKING:
     from .config import Settings
-from .models import ValidationResult
 
 
 def extension(name: str) -> str:
@@ -11,7 +12,12 @@ def extension(name: str) -> str:
 
 
 def validate_payload(
-    *, torrent_hash: str, torrent_name: str, category: str, files: list[dict], settings: "Settings"
+    *,
+    torrent_hash: str,
+    torrent_name: str,
+    category: str,
+    files: list[dict],
+    settings: "Settings",
 ) -> ValidationResult:
     videos: list[dict] = []
     blocked: list[str] = []

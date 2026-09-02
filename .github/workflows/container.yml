@@ -2,33 +2,46 @@ name: Container
 on:
   push:
     branches: [main, testing]
-    tags: ['v*']
+    tags: ["v*"]
+
 permissions:
   contents: read
   packages: write
+
+concurrency:
+  group: rmv-container-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v6
         id: meta
         with:
-          images: ghcr.io/${{ github.repository_owner }}/roguemediavalidator
+          images: ghcr.io/rogueassassin/roguemediavalidator
           tags: |
             type=raw,value=testing,enable=${{ github.ref == 'refs/heads/testing' }}
+            type=raw,value=0.1.0-testing,enable=${{ github.ref == 'refs/heads/testing' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=0.1.0,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
-      - uses: docker/build-push-action@v6
+            type=sha
+      - uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
