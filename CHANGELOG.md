@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.0 - testing
+## 0.1.0 - stable
 
-Initial RogueMediaValidator testing foundation.
+First stable RogueMediaValidator base release.
 
 ### Added
 
@@ -14,10 +14,17 @@ Initial RogueMediaValidator testing foundation.
 - SQLite audit history and responsive dashboard.
 - Docker/Podman deployment and GHCR multi-architecture publishing.
 - Approved RMV icon integrated into the UI and GitHub presentation.
-- Permanent `testing` branch model matching the Rogue project family.
-- Internal application port 7811 with independently configurable `RMV_HTTP_PORT`.
+- Internal application port 7811 with independently configurable host mapping.
+- Regression tests for SQLite persistence and qBittorrent authentication.
 
 ### Fixed
 
-- CI Ruff findings for modern `datetime.UTC` usage and an unused `json` import in the SQLite store; validator imports were also normalised.
-- Container health check and Compose mapping now use the dedicated RMV internal port.
+- Rootless Podman SQLite startup failure by moving persistent data to a managed volume with Podman ownership handling.
+- qBittorrent authentication compatibility for successful empty-body 2xx/204 login responses.
+- CI Ruff findings for modern `datetime.UTC` usage and unused imports.
+- Container health check and Compose mapping use the dedicated RMV internal port.
+
+### Release channels
+
+- `main` -> `:latest` and `:0.1.0`
+- `testing` -> `:testing`
