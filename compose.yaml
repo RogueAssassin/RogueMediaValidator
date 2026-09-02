@@ -1,0 +1,20 @@
+services:
+  roguemediavalidator:
+    image: ghcr.io/rogueassassin/roguemediavalidator:testing
+    container_name: roguemediavalidator
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "7810:8080"
+    volumes:
+      - ./data:/data
+    networks:
+      - media-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+networks:
+  media-net:
+    external: true

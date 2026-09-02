@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RogueMediaValidator</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand"><div class="mark">RMV</div><div><strong>RogueMediaValidator</strong><small>Validate. Protect. Automate.</small></div></div>
+    <nav><a class="active">Dashboard</a><a href="#activity">Activity</a><a href="#policy">Policy</a><a href="/api/health">API</a></nav>
+    <div class="status"><span></span> Validator online<br><small>v{{ version }} · {% if settings.dry_run %}Dry run{% else %}Enforcing{% endif %}</small></div>
+  </aside>
+  <main>
+    <header><div><h1>Media Validation</h1><p>Only approved video payloads are allowed through.</p></div><div class="pill">qBittorrent · {{ settings.qb_url }}</div></header>
+    <section class="cards">
+      <article><small>Total checked</small><b>{{ stats.total }}</b></article>
+      <article><small>Approved</small><b class="good">{{ stats.approved }}</b></article>
+      <article><small>Blocked</small><b class="bad">{{ stats.blocked }}</b></article>
+      <article><small>Mode</small><b>{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</b></article>
+    </section>
+    <section class="panel" id="activity"><div class="panel-head"><h2>Recent validation activity</h2><span>Actual torrent file metadata</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Status</th><th>Release</th><th>Category</th><th>Videos</th><th>Result</th></tr></thead><tbody>
+      {% for row in recent %}<tr><td><span class="tag {{ row.status }}">{{ row.status }}</span></td><td>{{ row.torrent_name }}</td><td>{{ row.category }}</td><td>{{ row.video_files }}</td><td>{{ row.reason }}</td></tr>{% else %}<tr><td colspan="5" class="empty">No torrents have been validated yet.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+    <section class="grid2" id="policy">
+      <article class="panel"><h2>Video policy</h2><p><strong>Required:</strong> {{ settings.allowed_video_extensions }}</p><p><strong>Minimum size:</strong> {{ settings.min_video_size_mb }} MB</p><p><strong>Categories:</strong> {{ settings.qb_categories }}</p></article>
+      <article class="panel"><h2>Protection</h2><p>Strict allowlist for video/supporting files.</p><p>Executable and script extensions are blocked.</p><p>Unknown extensions fail closed.</p></article>
+    </section>
+  </main>
+</div>
+</body>
+</html>

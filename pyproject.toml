@@ -1,0 +1,27 @@
+[project]
+name = "roguemediavalidator"
+version = "0.1.0"
+description = "Pre-download media payload validator for qBittorrent, Radarr and Sonarr"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.30,<1",
+  "httpx>=0.27,<1",
+  "jinja2>=3.1,<4",
+  "pydantic-settings>=2.5,<3",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8,<9",
+  "pytest-asyncio>=0.24,<1",
+  "ruff>=0.7,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
