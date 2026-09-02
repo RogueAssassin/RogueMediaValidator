@@ -16,9 +16,7 @@ def torrent_is_eligible(torrent: dict, settings: Settings) -> bool:
 
     if settings.categories and category not in settings.categories:
         return False
-    if settings.managed_states and state not in settings.managed_states:
-        return False
-    return True
+    return not settings.managed_states or state in settings.managed_states
 
 
 class ValidationService:
