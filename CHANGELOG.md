@@ -19,5 +19,5 @@ Initial RogueMediaValidator testing foundation.
 
 ### Fixed
 
-- CI Ruff failures caused by the `ValidationResult` import ordering and an unused `json` import in the SQLite store.
+- CI Ruff findings for modern `datetime.UTC` usage and an unused `json` import in the SQLite store; validator imports were also normalised.
 - Container health check and Compose mapping now use the dedicated RMV internal port.

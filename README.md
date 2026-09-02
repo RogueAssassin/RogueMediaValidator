@@ -156,7 +156,7 @@ CHANGELOG.md            release history
 
 CI runs Ruff, unit tests, Python bytecode compilation, Compose validation and a container build. GHCR publishing builds Linux amd64/arm64 images with provenance and SBOM metadata.
 
-The initial CI failure was caused by Ruff findings in the first foundation commit: import ordering in `app/validator.py` and an unused `json` import in `app/store.py`. Both are corrected in the testing revision.
+The initial CI failure was caused by Ruff findings in the first foundation code: modern UTC usage in `app/models.py` plus an unused `json` import in `app/store.py`. The validator import layout was also normalised. These are corrected in the testing revision.
 
 See [docs/TESTING.md](docs/TESTING.md) and [MILESTONES.md](MILESTONES.md).
 

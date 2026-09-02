@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 @dataclass(slots=True)
@@ -16,7 +16,7 @@ class ValidationResult:
 
     @classmethod
     def now(cls, **kwargs):
-        return cls(checked_at=datetime.now(timezone.utc).isoformat(), **kwargs)
+        return cls(checked_at=datetime.now(UTC).isoformat(), **kwargs)
 
     def as_dict(self):
         return asdict(self)
