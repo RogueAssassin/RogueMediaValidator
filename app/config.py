@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     poll_seconds: int = 2
     dry_run: bool = True
     log_level: str = "INFO"
+    setup_unlock: bool = False
 
     # Generic torrent client settings used by 0.4.x and later. Leave the client
     # blank to use browser setup/runtime configuration.
