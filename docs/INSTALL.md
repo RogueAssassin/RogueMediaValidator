@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator 0.2.x uses **one `compose.yaml` for both Docker and Podman**.
+RogueMediaValidator 0.3.x uses **one `compose.yaml` for both Docker and Podman**.
 
 RMV runs beside qBittorrent on the shared private `media-net` network. The application listens internally on TCP 7811; `RMV_HTTP_PORT` controls only the host-side mapping.
 
@@ -15,7 +15,15 @@ curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/t
 chmod 600 .env
 ```
 
-Edit `.env`, configure the qBittorrent endpoint/credentials, and keep `RMV_DRY_RUN=true` for first-run validation.
+Configure the qBittorrent endpoint and credentials. For the default first-run category automation, leave:
+
+```env
+RMV_QB_CATEGORIES=
+RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=true
+RMV_DRY_RUN=true
+```
+
+On the first successful qBittorrent category discovery, RMV persists the current non-empty category set into SQLite and uses it immediately as managed scope. The container does not rewrite your `.env`.
 
 ## Podman
 
@@ -35,7 +43,41 @@ docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-Both engines use the same managed named volume, `roguemediavalidator-data`, for `/data`. RMV itself runs as non-root UID 10001.
+Both engines use the same managed named volume for `/data`. RMV runs as non-root UID 10001.
+
+## First-run category verification
+
+```bash
+curl -fsS http://127.0.0.1:7811/api/diagnostics | python3 -m json.tool
+```
+
+A successful default bootstrap should show:
+
+```json
+"environment_categories": [],
+"managed_categories": ["movies", "tv"],
+"discovered_categories": ["movies", "tv"],
+"category_source": "auto_bootstrap",
+"category_auto_bootstrap": true,
+"category_bootstrap_complete": true
+```
+
+New categories discovered after that bootstrap are shown but are **not** automatically added to managed scope.
+
+To explicitly control scope instead:
+
+```env
+RMV_QB_CATEGORIES=tv,movies
+```
+
+Explicit environment categories always override the persisted bootstrap set.
+
+To leave a blank scope fail-closed:
+
+```env
+RMV_QB_CATEGORIES=
+RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=false
+```
 
 ## Applying configuration changes
 
@@ -53,31 +95,14 @@ Docker:
 docker compose --env-file .env -f compose.yaml up -d --force-recreate
 ```
 
-`down` followed by `up -d` is also valid. Avoid `down -v` unless deleting RMV's database is intentional.
+A full `down` followed by `up -d` is also valid. Avoid `down -v` unless deleting RMV's database and persisted category bootstrap is intentional.
 
-## First-run checks
+## Upgrading from 0.2.0
 
-```bash
-curl -fsS http://127.0.0.1:7811/api/health
-curl -fsS http://127.0.0.1:7811/api/diagnostics
-```
+Existing 0.2.0 data volumes can be retained. 0.3.0 creates the `runtime_settings` table automatically.
 
-Confirm qBittorrent connects, categories are discovered, and only explicitly configured categories enter scope.
-
-## Upgrading from 0.1.x
-
-0.1.x had a Podman-specific `compose.podman.yaml`. Delete that obsolete file after moving to 0.2.0; use only `compose.yaml`.
-
-If the existing RMV named volume was created successfully under 0.1.x, it can be retained. The SQLite schema migrates automatically to add policy fingerprints and structured action outcome fields.
-
-If an old test volume has broken ownership and contains no data you need, recreate only the RMV volume.
+If your existing `.env` already contains `RMV_QB_CATEGORIES=tv,movies`, those explicit categories continue to win. To test 0.3.0 auto-bootstrap, clear `RMV_QB_CATEGORIES`, keep `RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=true`, and recreate the container.
 
 ## First-run safety
 
-Keep:
-
-```env
-RMV_DRY_RUN=true
-```
-
-until real qBittorrent metadata and decisions have been reviewed. Do not expose the RMV UI directly to the public Internet during testing.
+Keep `RMV_DRY_RUN=true` until the bootstrapped managed categories and validation decisions have been reviewed. Do not expose RMV directly to the public Internet during testing.
