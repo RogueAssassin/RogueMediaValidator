@@ -5,6 +5,7 @@ class TransmissionClient:
     provider_id = "transmission"
     display_name = "Transmission"
     scope_name = "labels"
+    supports_delete_data = True
 
     def __init__(self, base_url: str, username: str, password: str):
         self.base_url = base_url.rstrip("/")
