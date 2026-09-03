@@ -1,7 +1,7 @@
 [project]
 name = "roguemediavalidator"
-version = "0.1.2"
-description = "Pre-download media payload validator for qBittorrent, Radarr and Sonarr"
+version = "0.1.3"
+description = "Pre-download media payload validator for qBittorrent-based automation"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1",
