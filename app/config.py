@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     qb_username: str = ""
     qb_password: str = ""
     qb_categories: str = ""
+    qb_auto_bootstrap_categories: bool = True
     qb_inspect_all_states: bool = True
     qb_category_refresh_seconds: int = 60
     qb_action_states: str = (
