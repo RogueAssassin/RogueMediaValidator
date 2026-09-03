@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from pathlib import Path
 
@@ -37,6 +38,12 @@ class Store:
                         action TEXT NOT NULL DEFAULT 'none',
                         action_status TEXT NOT NULL DEFAULT 'audit',
                         action_error TEXT
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS runtime_settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
                     )
                 """)
                 columns = {
@@ -96,6 +103,45 @@ class Store:
                         :blocked_files,:largest_video_bytes,:checked_at,:enforced,
                         :policy_fingerprint,:action,:action_status,:action_error)
             """, data)
+
+    def set_runtime_setting(self, key: str, value: str):
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO runtime_settings(key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value
+                """,
+                (key, value),
+            )
+
+    def get_runtime_setting(self, key: str) -> str | None:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT value FROM runtime_settings WHERE key=?",
+                (key,),
+            ).fetchone()
+        return str(row[0]) if row else None
+
+    def set_bootstrap_categories(self, categories: list[str]):
+        normalized = sorted({x.strip().lower() for x in categories if x.strip()})
+        self.set_runtime_setting("bootstrap_categories", json.dumps(normalized))
+        self.set_runtime_setting("category_bootstrap_complete", "1")
+
+    def bootstrap_categories(self) -> frozenset[str]:
+        raw = self.get_runtime_setting("bootstrap_categories")
+        if not raw:
+            return frozenset()
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return frozenset()
+        if not isinstance(payload, list):
+            return frozenset()
+        return frozenset(str(x).strip().lower() for x in payload if str(x).strip())
+
+    def category_bootstrap_complete(self) -> bool:
+        return self.get_runtime_setting("category_bootstrap_complete") == "1"
 
     def has_current(self, torrent_hash: str, policy_fingerprint: str) -> bool:
         with self._connect() as db:
