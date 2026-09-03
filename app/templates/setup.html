@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090d14">
+  <title>RogueMediaValidator · Installation</title>
+  <link rel="icon" type="image/png" href="/static/icons/roguemediavalidator-approved-128.png">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="app setup-app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RMV">
+        <div class="brand-copy">
+          <strong>RogueMediaValidator</strong>
+          <span>Installation & torrent client setup</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="version">v{{ version }}</span>
+        {% if configured %}<a class="button secondary" href="/">Back to dashboard</a>{% endif %}
+      </div>
+    </header>
+
+    <main class="setup-main">
+      <section class="setup-hero">
+        <p class="eyebrow">Installation</p>
+        <h1>Connect your torrent client</h1>
+        <p>Choose the torrent application RMV should protect. RMV talks directly to the client API over your Docker or Podman network and never needs the container-engine socket.</p>
+      </section>
+
+      {% if locked %}
+      <section class="panel setup-locked">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">Current installation</span>
+            <h2>Setup is locked</h2>
+          </div>
+          <span class="state ok">Configured</span>
+        </div>
+        <p>This RMV instance is already configured. Setup writes lock automatically after installation so a publicly reachable dashboard cannot silently change torrent client credentials.</p>
+        {% if current %}
+        <dl class="facts compact setup-current">
+          <div><dt>Provider</dt><dd>{{ current.provider }}</dd></div>
+          <div><dt>Configuration source</dt><dd>{{ current.source }}</dd></div>
+          <div><dt>Endpoint</dt><dd>{{ current.url }}</dd></div>
+          <div><dt>Username</dt><dd>{{ current.username or 'Not required' }}</dd></div>
+        </dl>
+        {% endif %}
+        <div class="setup-note">
+          To intentionally reconfigure from this page, set <code>RMV_SETUP_UNLOCK=true</code> and recreate the RMV container. Return it to <code>false</code> after setup.
+        </div>
+      </section>
+      {% else %}
+      <section class="setup-steps" aria-label="Installation steps">
+        <div class="setup-step active"><span>1</span><div><strong>Client</strong><small>Choose application</small></div></div>
+        <div class="setup-step"><span>2</span><div><strong>Connect</strong><small>Test API access</small></div></div>
+        <div class="setup-step"><span>3</span><div><strong>Discover</strong><small>Find scopes</small></div></div>
+        <div class="setup-step"><span>4</span><div><strong>Ready</strong><small>Start dry-run</small></div></div>
+      </section>
+
+      <section class="panel setup-panel">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">Step 1</span>
+            <h2>Select torrent client</h2>
+          </div>
+        </div>
+
+        <div class="provider-grid" id="provider-grid">
+          {% for provider in providers %}
+          <button
+            type="button"
+            class="provider-card {{ 'disabled' if provider.status != 'supported' else '' }}"
+            data-provider="{{ provider.id }}"
+            data-url="{{ provider.default_url }}"
+            data-supported="{{ 'true' if provider.status == 'supported' else 'false' }}"
+            data-username-label="{{ provider.username_label }}"
+            data-password-label="{{ provider.password_label }}"
+            data-credential-hint="{{ provider.credential_hint }}"
+            data-delete-data="{{ 'true' if provider.supports_delete_data else 'false' }}"
+            {% if provider.status != 'supported' %}disabled{% endif %}
+          >
+            <div class="provider-card-head">
+              <strong>{{ provider.name }}</strong>
+              <span class="provider-badge {{ provider.status }}">{{ provider.status }}</span>
+            </div>
+            <p>{{ provider.description }}</p>
+            <small>RMV scope: {{ provider.scope_name }}</small>
+            <small>Payload cleanup: {{ 'full' if provider.supports_delete_data else 'torrent entry only' }}</small>
+          </button>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="panel setup-panel" id="connection-panel">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">Step 2</span>
+            <h2>Connection details</h2>
+          </div>
+          <span class="state neutral" id="selected-client">Choose a client</span>
+        </div>
+
+        <div class="form-grid">
+          <label class="field full">
+            <span>API URL</span>
+            <input id="setup-url" type="url" placeholder="Select a torrent client first" autocomplete="url">
+            <small>Use the address RMV can reach from inside its container, normally the torrent service/container name on the shared network.</small>
+          </label>
+          <label class="field">
+            <span id="username-label">Username</span>
+            <input id="setup-username" type="text" autocomplete="username" placeholder="Optional">
+          </label>
+          <label class="field">
+            <span id="password-label">Password</span>
+            <input id="setup-password" type="password" autocomplete="current-password" placeholder="Optional">
+          </label>
+          <div class="field full setup-credential-hint">
+            <small id="credential-hint">Choose a torrent client to see its authentication requirements.</small>
+          </div>
+        </div>
+
+        <div class="setup-actions">
+          <button class="button secondary" id="test-button" type="button" disabled>Test connection</button>
+          <button class="button primary" id="save-button" type="button" disabled>Save & finish setup</button>
+        </div>
+
+        <div class="setup-result" id="setup-result" hidden></div>
+      </section>
+
+      <section class="panel setup-help">
+        <div>
+          <span class="section-label">Docker & Podman</span>
+          <h2>No engine-specific setup</h2>
+          <p>The same RMV image and <code>compose.yaml</code> work with Docker and Podman. RMV connects to the torrent application's API and does not mount <code>docker.sock</code> or <code>podman.sock</code>.</p>
+        </div>
+        <div>
+          <span class="section-label">Safe first run</span>
+          <h2>Dry-run stays on</h2>
+          <p>Completing installation does not enable destructive actions. Keep <code>RMV_DRY_RUN=true</code> until discovered categories/labels and validation decisions have been reviewed.</p>
+        </div>
+      </section>
+      {% endif %}
+    </main>
+  </div>
+
+  {% if not locked %}
+  <script>
+    (() => {
+      const cards = [...document.querySelectorAll('.provider-card[data-supported="true"]')];
+      const url = document.getElementById('setup-url');
+      const username = document.getElementById('setup-username');
+      const password = document.getElementById('setup-password');
+      const selected = document.getElementById('selected-client');
+      const usernameLabel = document.getElementById('username-label');
+      const passwordLabel = document.getElementById('password-label');
+      const credentialHint = document.getElementById('credential-hint');
+      const testButton = document.getElementById('test-button');
+      const saveButton = document.getElementById('save-button');
+      const result = document.getElementById('setup-result');
+      let provider = null;
+      let testedSignature = null;
+
+      function signature() {
+        return JSON.stringify({
+          provider,
+          url: url.value.trim(),
+          username: username.value,
+          password: password.value
+        });
+      }
+
+      function markDirty() {
+        saveButton.disabled = true;
+        testedSignature = null;
+      }
+
+      function show(kind, title, lines = []) {
+        result.hidden = false;
+        result.className = 'setup-result ' + kind;
+        result.replaceChildren();
+
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        result.appendChild(heading);
+
+        lines.forEach(line => {
+          const detail = document.createElement('span');
+          detail.textContent = line;
+          result.appendChild(detail);
+        });
+      }
+
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          cards.forEach(item => item.classList.remove('selected'));
+          card.classList.add('selected');
+          provider = card.dataset.provider;
+          selected.textContent = card.querySelector('strong').textContent;
+          url.value = card.dataset.url || '';
+          usernameLabel.textContent = card.dataset.usernameLabel || 'Username';
+          passwordLabel.textContent = card.dataset.passwordLabel || 'Password';
+          credentialHint.textContent = card.dataset.credentialHint || '';
+          username.disabled = provider === 'aria2';
+          if (username.disabled) username.value = '';
+          testButton.disabled = !url.value;
+          markDirty();
+          result.hidden = true;
+        });
+      });
+
+      [url, username, password].forEach(input => {
+        input.addEventListener('input', () => {
+          testButton.disabled = !provider || !url.value.trim();
+          markDirty();
+        });
+      });
+
+      async function call(path) {
+        const payload = {
+          provider,
+          url: url.value.trim(),
+          username: username.value,
+          password: password.value
+        };
+        const response = await fetch(path, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        let data = {};
+        try { data = await response.json(); } catch (_) {}
+        if (!response.ok) {
+          throw new Error(data.detail || 'Connection failed');
+        }
+        return data;
+      }
+
+      testButton.addEventListener('click', async () => {
+        testButton.disabled = true;
+        saveButton.disabled = true;
+        show('working', 'Testing connection…', ['Contacting the selected torrent client API.']);
+        try {
+          const data = await call('/api/setup/test');
+          testedSignature = signature();
+          const scopes = data.scopes?.length ? data.scopes.join(', ') : 'None currently discovered';
+          const cleanup = data.supports_delete_data
+            ? 'Blocked payload data can be removed through this client API.'
+            : 'This client API can remove the torrent entry but cannot guarantee local payload deletion.';
+          show('success', 'Connection successful', [
+            data.name + ' ' + data.version,
+            data.scope_name + ': ' + scopes,
+            cleanup
+          ]);
+          saveButton.disabled = false;
+        } catch (error) {
+          show('error', 'Connection failed', [error.message]);
+        } finally {
+          testButton.disabled = false;
+        }
+      });
+
+      saveButton.addEventListener('click', async () => {
+        if (testedSignature !== signature()) {
+          show('error', 'Test required', ['Connection details changed. Test them again before saving.']);
+          saveButton.disabled = true;
+          return;
+        }
+
+        saveButton.disabled = true;
+        testButton.disabled = true;
+        show('working', 'Saving setup…', ['Persisting the provider and discovering validation scope.']);
+        try {
+          const data = await call('/api/setup/save');
+          const scopes = data.managed_scopes?.length ? data.managed_scopes.join(', ') : 'Waiting for labels/categories';
+          show('success', 'RMV is ready', [
+            'Managed scope: ' + scopes,
+            'Opening dashboard…'
+          ]);
+          setTimeout(() => window.location.assign(data.redirect || '/'), 700);
+        } catch (error) {
+          show('error', 'Setup failed', [error.message]);
+          testButton.disabled = false;
+        }
+      });
+    })();
+  </script>
+  {% endif %}
+</body>
+</html>
