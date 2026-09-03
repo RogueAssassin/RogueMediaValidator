@@ -55,7 +55,7 @@ class QBittorrentClient:
         r = await self._request("GET", "/api/v2/torrents/categories")
         payload = r.json()
         if not isinstance(payload, dict):
-            raise RuntimeError("qBittorrent returned an invalid category response")
+            raise TypeError("qBittorrent returned an invalid category response")
         return sorted(str(name) for name in payload if str(name).strip())
 
     async def torrents(self) -> list[dict]:
