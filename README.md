@@ -480,6 +480,25 @@ RMV does not require the Docker or Podman socket and should never be given conta
 
 During testing, keep port 7811 private to the host/LAN and do not expose RMV directly to the public Internet.
 
+
+### Applying .env changes
+
+Changes to `.env` do not alter the environment of an already-created container. After changing RMV settings, **recreate the container**. A simple `podman restart` / `docker restart` is not sufficient.
+
+Podman:
+
+```bash
+podman compose --env-file .env -f compose.yaml up -d --force-recreate
+```
+
+Docker:
+
+```bash
+docker compose --env-file .env -f compose.yaml up -d --force-recreate
+```
+
+A full `down` followed by `up -d` is also valid. Do not add `-v` unless you intentionally want to remove RMV's persistent SQLite data.
+
 ## Updating
 
 Podman:
