@@ -18,8 +18,7 @@ def torrent_in_scope(
 ) -> bool:
     scopes = torrent.get("_scopes")
     if not isinstance(scopes, list):
-        category = str(torrent.get("category", "")).strip()
-        scopes = [category] if category else []
+        scopes = []
 
     normalized = {str(scope).strip().lower() for scope in scopes if str(scope).strip()}
     configured = settings.scopes if managed_scopes is None else managed_scopes
@@ -43,7 +42,7 @@ def torrent_should_inspect(
 ) -> bool:
     if not torrent_in_scope(torrent, settings, managed_scopes):
         return False
-    if settings.inspect_all_states:
+    if settings.torrent_inspect_all_states:
         return True
     return torrent_actionable(torrent, settings)
 
@@ -92,6 +91,10 @@ class ValidationService:
             return self.client.scope_name
         return "scopes"
 
+    @property
+    def supports_delete_data(self) -> bool:
+        return bool(self.client is not None and self.client.supports_delete_data)
+
     def _load_scope(self):
         if self.settings.scopes:
             self.managed_scopes = self.settings.scopes
@@ -99,7 +102,7 @@ class ValidationService:
             return
 
         if self.client_name:
-            persisted = self.store.bootstrap_categories(self.client_name)
+            persisted = self.store.bootstrap_scopes(self.client_name)
             if persisted:
                 self.managed_scopes = persisted
                 self.scope_source = "auto_bootstrap"
@@ -125,7 +128,7 @@ class ValidationService:
     async def refresh_scopes(self, *, force: bool = False):
         if self.client is None:
             return
-        refresh_after = max(15, self.settings.scope_refresh_seconds)
+        refresh_after = max(15, self.settings.torrent_scope_refresh_seconds)
         now = time.monotonic()
         if force or now - self._scope_refresh_monotonic >= refresh_after:
             self.discovered_scopes = await self.client.scopes()
@@ -137,9 +140,9 @@ class ValidationService:
             return
         if self.settings.scopes:
             return
-        if not self.settings.auto_bootstrap_scopes:
+        if not self.settings.torrent_auto_bootstrap_scopes:
             return
-        if self.store.category_bootstrap_complete(self.client_name):
+        if self.store.scope_bootstrap_complete(self.client_name):
             return
 
         discovered = sorted(
@@ -148,7 +151,7 @@ class ValidationService:
         if not discovered:
             return
 
-        self.store.set_bootstrap_categories(discovered, self.client_name)
+        self.store.set_bootstrap_scopes(discovered, self.client_name)
         self.managed_scopes = frozenset(discovered)
         self.scope_source = "auto_bootstrap"
         log.warning(
@@ -219,7 +222,7 @@ class ValidationService:
                 result = validate_payload(
                     torrent_hash=torrent_hash,
                     torrent_name=str(torrent.get("name", "Unknown")),
-                    category=scope_text or str(torrent.get("category", "")),
+                    category=scope_text,
                     files=files,
                     settings=self.settings,
                 )
@@ -264,11 +267,23 @@ class ValidationService:
                         and self.settings.remove_rejected
                     ):
                         action = "delete"
-                        await client.delete(
-                            torrent_hash,
-                            self.settings.delete_rejected_data,
+                        delete_data = (
+                            self.settings.delete_rejected_data
+                            and client.supports_delete_data
                         )
-                        action_status = "success"
+                        await client.delete(torrent_hash, delete_data)
+                        if (
+                            self.settings.delete_rejected_data
+                            and not client.supports_delete_data
+                        ):
+                            action_status = "limited"
+                            action_error = (
+                                f"{client.display_name} cannot delete local payload data "
+                                "through its supported API; the torrent entry was removed only"
+                            )
+                            log.warning("%s", action_error)
+                        else:
+                            action_status = "success"
                     elif result.status == "blocked" and not actionable:
                         action_status = "inspection_only"
                         log.warning(
@@ -317,7 +332,7 @@ class ValidationService:
 
     def snapshot(self) -> dict:
         bootstrap_complete = (
-            self.store.category_bootstrap_complete(self.client_name)
+            self.store.scope_bootstrap_complete(self.client_name)
             if self.client_name
             else False
         )
@@ -327,6 +342,7 @@ class ValidationService:
             "client": self.client_name or None,
             "client_display_name": self.display_name,
             "client_version": self.last_client_version,
+            "supports_delete_data": self.supports_delete_data,
             "last_error": self.last_error,
             "last_cycle_at": self.last_cycle_at,
             "last_success_at": self.last_success_at,
@@ -336,22 +352,12 @@ class ValidationService:
             "discovered_scopes": self.discovered_scopes,
             "scope_source": self.scope_source,
             "scope_bootstrap_complete": bootstrap_complete,
-            "scope_auto_bootstrap": self.settings.auto_bootstrap_scopes,
+            "scope_auto_bootstrap": self.settings.torrent_auto_bootstrap_scopes,
             "torrents_seen": self.last_seen,
             "in_scope_torrents": self.last_in_scope,
             "actionable_torrents": self.last_actionable,
             "validated_this_cycle": self.last_validated,
             "policy_fingerprint": self.settings.policy_fingerprint,
-            # Compatibility aliases for existing 0.3.x integrations.
-            "qbittorrent_version": (
-                self.last_client_version if self.client_name == "qbittorrent" else None
-            ),
-            "environment_categories": sorted(self.settings.scopes),
-            "managed_categories": sorted(self.managed_scopes),
-            "discovered_categories": self.discovered_scopes,
-            "category_source": self.scope_source,
-            "category_bootstrap_complete": bootstrap_complete,
-            "category_auto_bootstrap": self.settings.auto_bootstrap_scopes,
         }
 
     async def close(self):
