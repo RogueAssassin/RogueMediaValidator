@@ -7,6 +7,7 @@ class QBittorrentClient:
     provider_id = "qbittorrent"
     display_name = "qBittorrent"
     scope_name = "categories"
+    supports_delete_data = True
 
     def __init__(self, base_url: str, username: str, password: str):
         self.base_url = base_url.rstrip("/")
