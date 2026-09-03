@@ -2,99 +2,114 @@
 
 Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidator:testing`.
 
-## 0.4.0 test plan
+## 0.5.0 provider-completion test plan
 
-### Existing qBittorrent upgrade
+Every supported provider must pass:
 
-1. Keep the existing 0.3.x `RMV_QB_*` environment.
-2. Pull/recreate 0.4.0.
-3. Confirm the dashboard loads instead of redirecting to Installation.
-4. Confirm provider is qBittorrent.
-5. Confirm existing category bootstrap state remains intact.
-6. Confirm the known blocked `.exe` audit remains in SQLite.
-7. Confirm dry-run/enforcement behavior remains unchanged.
+1. Installation selector is enabled.
+2. Suggested API URL is correct for the provider.
+3. Provider-specific credential labels are correct.
+4. Test connection succeeds against a real deployment.
+5. Version is detected.
+6. Scopes are discovered.
+7. Setup saves and locks.
+8. Managed scopes persist across container recreation.
+9. Torrent metadata is normalized.
+10. File metadata reaches the shared validator.
+11. Approved stopped downloads resume when enforcement is enabled.
+12. Blocked actionable torrents are removed when enforcement is enabled.
+13. Completed/seeding torrents stay inspection-only.
 
-### Fresh qBittorrent wizard
+## qBittorrent
 
-1. Start with a fresh RMV volume and fresh 0.4.0 `.env`.
-2. Confirm `/` redirects to `/setup`.
-3. Select qBittorrent.
-4. Enter the internal API endpoint and credentials.
-5. Confirm Test connection reports version and categories.
-6. Save.
-7. Confirm setup redirects to dashboard.
-8. Confirm categories bootstrap and persist.
-9. Confirm setup becomes locked.
+Verify:
 
-### Fresh Transmission wizard
+- Web UI login/session recovery;
+- categories;
+- v5 start endpoint;
+- delete with optional data deletion.
 
-1. Start with a fresh RMV volume.
-2. Select Transmission.
-3. Use the RPC endpoint reachable from RMV.
-4. Test authentication/CSRF handling.
-5. Confirm Transmission version is displayed.
-6. Confirm torrent labels are discovered.
-7. Save and verify the label set bootstraps.
-8. Confirm a torrent with any managed label enters scope.
-9. Confirm a multi-label torrent is in scope when at least one label is managed.
-10. Confirm stopped/downloading states are actionable and seeding is inspection-only.
-11. Confirm file metadata is normalized into the shared validator.
-12. Keep `RMV_DRY_RUN=true` for the first live client test.
+## Transmission
 
-### Setup security
+Verify:
 
-1. Complete browser setup.
-2. Confirm a second save request is rejected while `RMV_SETUP_UNLOCK=false`.
-3. Set `RMV_SETUP_UNLOCK=true`, recreate, and confirm reconfiguration is available.
-4. Return unlock to false after the test.
-5. Confirm diagnostics never expose the password.
+- CSRF session-ID negotiation;
+- modern JSON-RPC;
+- legacy RPC fallback;
+- labels and multi-label matching;
+- torrent start/remove;
+- local data removal.
 
-### Provider isolation
+## Deluge
 
-1. Bootstrap qBittorrent scopes.
-2. Switch to Transmission.
-3. Confirm the qBittorrent bootstrap set does not become Transmission's label set.
-4. Switch back and confirm provider-specific scope persistence.
+Verify:
 
-### Regression gates
+- Web UI login;
+- already-connected daemon path;
+- automatic host connection when Web UI is disconnected;
+- label scope;
+- download-location fallback scope;
+- file retrieval;
+- resume;
+- remove with data.
 
-Re-run:
+## rTorrent / ruTorrent
+
+Verify:
+
+- XML-RPC endpoint;
+- optional HTTP Basic auth;
+- client version;
+- `d.multicall2`;
+- `custom1` label;
+- directory fallback;
+- `f.multicall`;
+- `d.start`;
+- `d.erase`;
+- requested payload deletion records `action_status=limited`.
+
+## aria2
+
+Verify:
+
+- JSON-RPC secret token;
+- BitTorrent-only filtering;
+- active/waiting/stopped enumeration;
+- download-directory scopes;
+- file metadata;
+- `aria2.unpause`;
+- `aria2.remove`;
+- requested payload deletion records `action_status=limited`.
+
+## Shared regressions
 
 - executable/script blocking;
-- unknown-extension fail-closed behavior;
+- unknown extension fail-closed behavior;
 - policy fingerprint revalidation;
 - dry-run safety;
-- action outcome recording;
-- qBittorrent outage recovery;
-- SQLite persistence;
-- single Docker/Podman Compose validation.
-
-## Environment changes
-
-After changing `.env`, recreate RMV:
-
-```bash
-podman compose --env-file .env -f compose.yaml up -d --force-recreate
-```
-
-A plain restart keeps the old environment.
+- scope bootstrap isolation;
+- no silent new-scope enrolment;
+- failed action persistence;
+- limited-action persistence;
+- setup password not returned by diagnostics;
+- template render tests;
+- one Docker/Podman Compose file;
+- configurable external network;
+- container build on amd64/arm64.
 
 ## CI gates
 
-Every testing/main push must pass:
+Every push to `testing`/main must pass:
 
 - Ruff;
 - pytest;
-- dashboard/setup template render tests;
-- qBittorrent adapter tests;
-- Transmission adapter tests;
-- Python compile validation;
-- `compose.yaml` validation;
+- Python compile;
+- Compose validation;
 - container build.
 
 Testing publishes:
 
 ```text
 :testing
-:0.4.0-testing
+:0.5.0-testing
 ```
