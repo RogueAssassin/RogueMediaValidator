@@ -5,6 +5,7 @@ class TorrentClient(Protocol):
     provider_id: str
     display_name: str
     scope_name: str
+    supports_delete_data: bool
 
     async def close(self) -> None: ...
 
