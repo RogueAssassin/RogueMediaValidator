@@ -76,6 +76,8 @@ class ValidationService:
                 ", ".join(self.discovered_categories) or "(none)",
             )
 
+        fingerprint = self.settings.policy_fingerprint
+
         for torrent in torrents:
             torrent_hash = str(torrent.get("hash", ""))
             if not torrent_hash or not torrent_should_inspect(torrent, self.settings):
@@ -87,15 +89,13 @@ class ValidationService:
                 self.last_actionable += 1
 
             if self.settings.dry_run:
-                if self.store.has(torrent_hash):
+                if self.store.has_current(torrent_hash, fingerprint):
                     continue
-            elif self.store.has_enforced(torrent_hash):
+            elif self.store.has_enforced_current(torrent_hash, fingerprint):
                 continue
 
             files = await self.qb.files(torrent_hash)
             if not files:
-                # Metadata/file list is not ready yet. Leave it unrecorded so
-                # the next poll retries as soon as qBittorrent exposes files.
                 continue
 
             result = validate_payload(
@@ -125,7 +125,12 @@ class ValidationService:
             if self.settings.dry_run:
                 continue
 
-            if result.status == "approved":
+            action = "none"
+            action_status = "not_required"
+            action_error = None
+
+            try:
+                if result.status == "approved":
                     if (
                         actionable
                         and state.lower() in {"pauseddl", "stoppeddl"}
@@ -199,7 +204,8 @@ class ValidationService:
             "torrents_seen": self.last_seen,
             "in_scope_torrents": self.last_in_scope,
             "actionable_torrents": self.last_actionable,
-            "validated_this_cycle": self.last_validated,\n            "policy_fingerprint": self.settings.policy_fingerprint,
+            "validated_this_cycle": self.last_validated,
+            "policy_fingerprint": self.settings.policy_fingerprint,
         }
 
     def stop(self):
