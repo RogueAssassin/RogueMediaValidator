@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.1 - testing
+
+Dashboard simplification and visual cleanup.
+
+### Changed
+
+- Removed the unused Dashboard, Activity and Policy navigation tabs.
+- Replaced the permanent sidebar with a compact top application bar.
+- Kept Diagnostics as a single clear utility action.
+- Expanded the main canvas to use the full available width.
+- Simplified the dashboard around validation totals, qBittorrent health, managed categories and recent validation history.
+- Added explicit action-failure visibility to the primary metrics.
+- Condensed category source, runtime state and policy details into clearer status cards.
+- Moved verbose policy/runtime information into an expandable Technical details section.
+- Improved responsive behavior for desktop, tablet and mobile layouts.
+- Testing image advances to `0.3.1-testing`.
+
+### UI
+
+The dashboard is intentionally read-focused. RMV's current administrative APIs remain read-only, so the interface does not present fake or non-functional configuration navigation.
+
+
 ## 0.3.0 - testing
 
 First-run category automation stage.
