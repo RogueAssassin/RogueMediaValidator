@@ -17,6 +17,20 @@ class Settings(BaseSettings):
     dry_run: bool = True
     log_level: str = "INFO"
 
+    # Generic torrent client settings used by 0.4.x and later. Leave the client
+    # blank to use browser setup/runtime configuration.
+    torrent_client: str = ""
+    torrent_url: str = ""
+    torrent_username: str = ""
+    torrent_password: str = ""
+    torrent_scopes: str = ""
+    torrent_auto_bootstrap_scopes: bool | None = None
+    torrent_inspect_all_states: bool | None = None
+    torrent_scope_refresh_seconds: int | None = None
+    torrent_action_states: str = ""
+
+    # Legacy qBittorrent settings retained so existing 0.3.x deployments upgrade
+    # without requiring an immediate .env migration.
     qb_url: str = "http://qbittorrent:8080"
     qb_username: str = ""
     qb_password: str = ""
@@ -56,11 +70,37 @@ class Settings(BaseSettings):
         return self._csv(self.blocked_extensions)
 
     @property
-    def categories(self) -> frozenset[str]:
+    def scopes(self) -> frozenset[str]:
+        if self.torrent_scopes.strip():
+            return self._csv(self.torrent_scopes)
         return self._csv(self.qb_categories)
 
     @property
+    def categories(self) -> frozenset[str]:
+        return self.scopes
+
+    @property
+    def auto_bootstrap_scopes(self) -> bool:
+        if self.torrent_auto_bootstrap_scopes is not None:
+            return self.torrent_auto_bootstrap_scopes
+        return self.qb_auto_bootstrap_categories
+
+    @property
+    def inspect_all_states(self) -> bool:
+        if self.torrent_inspect_all_states is not None:
+            return self.torrent_inspect_all_states
+        return self.qb_inspect_all_states
+
+    @property
+    def scope_refresh_seconds(self) -> int:
+        if self.torrent_scope_refresh_seconds is not None:
+            return self.torrent_scope_refresh_seconds
+        return self.qb_category_refresh_seconds
+
+    @property
     def action_states(self) -> frozenset[str]:
+        if self.torrent_action_states.strip():
+            return self._csv(self.torrent_action_states)
         return self._csv(self.qb_action_states)
 
     @property
