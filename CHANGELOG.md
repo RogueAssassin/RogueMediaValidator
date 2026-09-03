@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.5.0 - testing
+
+Complete headless torrent-provider support and compatibility cleanup.
+
+### Added
+
+- Deluge Web JSON-RPC adapter.
+- Deluge daemon auto-connect handling.
+- Deluge label scope with download-location fallback.
+- rTorrent/ruTorrent XML-RPC adapter.
+- rTorrent custom1 scope with directory fallback.
+- aria2 JSON-RPC BitTorrent adapter.
+- aria2 RPC secret support.
+- Provider `supports_delete_data` capability.
+- Limited enforcement state for providers that cannot guarantee local payload deletion.
+- Dashboard Action issues metric for failed + limited actions.
+- Provider-specific credential labels and cleanup capability in Installation.
+- Direct regression tests for qBittorrent, Transmission, Deluge, rTorrent and aria2.
+
+### Changed
+
+- Testing version advances to `0.5.0-testing`.
+- Core configuration is now exclusively `RMV_TORRENT_*`.
+- Scope persistence API is fully provider-neutral.
+- Diagnostics are fully provider-neutral.
+- Package description no longer identifies RMV as qBittorrent-based.
+
+### Removed
+
+- Obsolete `app/qbittorrent.py` compatibility wrapper.
+- Active `RMV_QB_*` compatibility configuration.
+- qBittorrent compatibility aliases from health/service diagnostics.
+- Legacy category-named storage helper APIs.
+- Planned status for Deluge and rTorrent.
+
+### Safety
+
+- RMV never claims payload deletion succeeded when a provider cannot guarantee it.
+- rTorrent and aria2 record `action_status=limited` when delete-data was requested.
+- Docker/Podman sockets remain unnecessary.
+
+
 ## 0.4.0 - testing
 
 Multi-client architecture and guided installation milestone.
