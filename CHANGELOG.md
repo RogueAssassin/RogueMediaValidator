@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 - testing
+## 0.5.0 - 2026-09-03
 
 Complete headless torrent-provider support and compatibility cleanup.
 
@@ -21,7 +21,7 @@ Complete headless torrent-provider support and compatibility cleanup.
 
 ### Changed
 
-- Testing version advances to `0.5.0-testing`.
+- Stable release version is `0.5.0`; testing images remain available from the permanent testing branch.
 - Core configuration is now exclusively `RMV_TORRENT_*`.
 - Scope persistence API is fully provider-neutral.
 - Diagnostics are fully provider-neutral.
