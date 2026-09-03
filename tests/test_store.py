@@ -30,6 +30,7 @@ def test_store_creates_database_in_writable_directory(tmp_path: Path):
         "blocked": 0,
         "enforced": 0,
         "action_failures": 0,
+        "limited_actions": 0,
     }
 
 
@@ -61,7 +62,7 @@ def test_policy_change_requires_revalidation(tmp_path: Path):
     assert not store.has_enforced_current("abc", "policy-b")
 
 
-def test_action_failure_is_visible_in_stats(tmp_path: Path):
+def test_action_failure_and_limited_action_are_visible_in_stats(tmp_path: Path):
     store = Store(tmp_path / "rmv.db")
     store.save(
         result(),
@@ -69,10 +70,28 @@ def test_action_failure_is_visible_in_stats(tmp_path: Path):
         enforced=False,
         action="resume",
         action_status="failed",
-        action_error="qBittorrent unavailable",
+        action_error="torrent client unavailable",
     )
     assert store.stats()["action_failures"] == 1
-    assert store.recent(1)[0]["action_error"] == "qBittorrent unavailable"
+
+    store.save(
+        ValidationResult.now(
+            torrent_hash="def",
+            torrent_name="Movie 2",
+            category="movies",
+            status="blocked",
+            reason="Blocked",
+            video_files=0,
+            blocked_files=1,
+            largest_video_bytes=0,
+        ),
+        policy_fingerprint="policy-a",
+        enforced=True,
+        action="delete",
+        action_status="limited",
+        action_error="data cleanup unavailable",
+    )
+    assert store.stats()["limited_actions"] == 1
 
 
 def test_store_reports_non_directory_data_path(tmp_path: Path):
@@ -88,11 +107,11 @@ def test_policy_fingerprint_changes_when_validation_policy_changes():
     assert base.policy_fingerprint != changed.policy_fingerprint
 
 
-def test_bootstrap_categories_persist_across_store_instances(tmp_path: Path):
+def test_bootstrap_scopes_persist_across_store_instances(tmp_path: Path):
     db_path = tmp_path / "rmv.db"
     first = Store(db_path)
-    first.set_bootstrap_categories(["TV", "movies", "tv"])
+    first.set_bootstrap_scopes(["TV", "movies", "tv"], "qbittorrent")
 
     second = Store(db_path)
-    assert second.category_bootstrap_complete() is True
-    assert second.bootstrap_categories() == frozenset({"movies", "tv"})
+    assert second.scope_bootstrap_complete("qbittorrent") is True
+    assert second.bootstrap_scopes("qbittorrent") == frozenset({"movies", "tv"})
