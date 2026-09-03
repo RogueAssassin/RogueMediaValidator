@@ -2,30 +2,31 @@
 
 Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidator:testing`.
 
-## 0.2.0 validation sequence
+## 0.3.0 validation sequence
 
-1. Use only `compose.yaml` with either Docker Compose or Podman Compose.
-2. Start with a fresh or known-good RMV data volume.
+1. Use only `compose.yaml` with Docker Compose or Podman Compose.
+2. Start with a fresh RMV data volume for a true first-install bootstrap test.
 3. Configure qBittorrent credentials and keep `RMV_DRY_RUN=true`.
-4. Leave `RMV_QB_CATEGORIES=` blank first and confirm categories are discovered but no torrents enter scope.
-5. Explicitly configure the intended categories, such as `tv,movies`.
-6. Confirm known-good media validates as approved and blocked/unknown payload tests fail closed.
-7. Record the current `policy_fingerprint` from `/api/diagnostics`.
-8. Change a validation rule, such as `RMV_MIN_VIDEO_SIZE_MB`, recreate the RMV container, and confirm the fingerprint changes and existing in-scope torrents can be revalidated.
-9. In controlled enforcement testing, confirm successful resume/delete actions record `action_status=success`.
-10. Simulate an action failure and confirm it is stored as `action_status=failed` without being marked enforced.
-11. Confirm SQLite history survives container restart/recreation.
-12. Only after those checks pass should permanent stack integration begin.
+4. Set `RMV_QB_CATEGORIES=` and `RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=true`.
+5. Start RMV and confirm the first non-empty discovered category set is persisted and becomes `managed_categories`.
+6. Confirm `category_source=auto_bootstrap` and `category_bootstrap_complete=true`.
+7. Restart/recreate RMV without deleting the data volume and confirm the managed set persists.
+8. Add a new qBittorrent category after bootstrap; confirm it appears in `discovered_categories` but not `managed_categories`.
+9. Set an explicit `RMV_QB_CATEGORIES` value and recreate RMV; confirm `category_source=environment` and the explicit set overrides bootstrap.
+10. Clear the explicit value again and recreate RMV; confirm the persisted bootstrap set resumes control.
+11. Disable `RMV_QB_AUTO_BOOTSTRAP_CATEGORIES` on a fresh data volume with blank categories and confirm scope remains empty.
+12. Re-run the 0.2.0 policy fingerprint and structured action-outcome regression checks.
+13. Confirm SQLite history survives restart/recreation.
 
 ## Environment changes require container recreation
 
-After changing `.env`, recreate RMV so the new environment is injected:
+After changing `.env`:
 
 ```bash
 podman compose --env-file .env -f compose.yaml up -d --force-recreate
 ```
 
-or the equivalent `docker compose` command. A plain container restart keeps the old environment.
+or use the equivalent `docker compose` command. A plain container restart keeps the old environment.
 
 ## CI gates
 
@@ -37,4 +38,4 @@ Every push/PR to `main` or `testing` must pass:
 - single `compose.yaml` configuration validation
 - container build
 
-The testing branch publishes `:testing` and `:0.2.0-testing`.
+The testing branch publishes `:testing` and `:0.3.0-testing`.
