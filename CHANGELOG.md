@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.0 - testing
+
+Operational-safety hardening milestone.
+
+### Added
+
+- Validation-policy fingerprints derived from the active payload policy.
+- Automatic revalidation when video/support/blocked extension policy or minimum video size changes.
+- Structured enforcement audit fields: `action`, `action_status`, and `action_error`.
+- Failed qBittorrent actions remain unenforced so failure is not mistaken for successful handling.
+- Action-failure statistics.
+- Automatic SQLite schema migration for 0.1.x databases.
+
+### Changed
+
+- Docker and Podman now share one `compose.yaml`.
+- Removed the obsolete `compose.podman.yaml`.
+- Documentation and testing guidance now use one deployment path for both engines.
+- Testing image advances to `0.2.0-testing`.
+
+### Safety
+
+- Existing torrent hashes are no longer permanently trusted after validation policy changes.
+- Category discovery remains informational and does not grant enforcement scope.
+
+
 ## 0.1.3 - testing
 
 Category discovery and safety-hardening stage.
