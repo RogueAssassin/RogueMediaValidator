@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, Request
@@ -31,29 +30,17 @@ def provider_meta(provider_id: str) -> dict | None:
 
 def environment_client_config() -> dict | None:
     provider = settings.torrent_client.strip().lower()
-    if provider:
-        meta = provider_meta(provider)
-        default_url = str(meta.get("default_url", "")) if meta else ""
-        return {
-            "provider": provider,
-            "url": settings.torrent_url.strip() or default_url,
-            "username": settings.torrent_username,
-            "password": settings.torrent_password,
-        }
+    if not provider:
+        return None
 
-    legacy_qb_keys = {
-        "RMV_QB_URL",
-        "RMV_QB_USERNAME",
-        "RMV_QB_PASSWORD",
+    meta = provider_meta(provider)
+    default_url = str(meta.get("default_url", "")) if meta else ""
+    return {
+        "provider": provider,
+        "url": settings.torrent_url.strip() or default_url,
+        "username": settings.torrent_username,
+        "password": settings.torrent_password,
     }
-    if any(key in os.environ for key in legacy_qb_keys):
-        return {
-            "provider": "qbittorrent",
-            "url": settings.qb_url,
-            "username": settings.qb_username,
-            "password": settings.qb_password,
-        }
-    return None
 
 
 def resolved_client_config() -> tuple[dict | None, str]:
@@ -68,7 +55,7 @@ def resolved_client_config() -> tuple[dict | None, str]:
     return None, "none"
 
 
-initial_config, config_source = resolved_client_config()
+initial_config, _ = resolved_client_config()
 initial_client = None
 initial_provider = ""
 if initial_config:
@@ -146,16 +133,10 @@ def health_payload() -> dict:
         "torrent_client": service.client_name or None,
         "torrent_client_name": service.display_name,
         "torrent_client_version": service.last_client_version,
+        "supports_delete_data": service.supports_delete_data,
         "last_error": service.last_error,
         "last_success_at": service.last_success_at,
         "diagnostics": diagnostics,
-        # Compatibility aliases for 0.3.x integrations.
-        "qbittorrent_connected": connected and service.client_name == "qbittorrent",
-        "qbittorrent_version": (
-            service.last_client_version
-            if service.client_name == "qbittorrent"
-            else None
-        ),
     }
 
 
@@ -197,11 +178,14 @@ async def setup_page(request: Request):
 async def test_setup_payload(payload: SetupPayload, *, keep_client: bool = False):
     meta = provider_meta(payload.provider)
     if not meta or meta.get("status") != "supported":
-        raise HTTPException(status_code=400, detail="That torrent client is not supported yet.")
+        raise HTTPException(status_code=400, detail="Unsupported torrent client.")
 
     url = payload.url.strip()
     if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="Torrent client URL must use http:// or https://.")
+        raise HTTPException(
+            status_code=400,
+            detail="Torrent client URL must use http:// or https://.",
+        )
 
     client = create_client(
         payload.provider,
@@ -218,6 +202,7 @@ async def test_setup_payload(payload: SetupPayload, *, keep_client: bool = False
             "version": version,
             "scope_name": client.scope_name,
             "scopes": scopes,
+            "supports_delete_data": client.supports_delete_data,
         }
         if keep_client:
             return result, client
@@ -265,7 +250,7 @@ async def setup_save(payload: SetupPayload):
         "password": payload.password,
     }
     store.set_torrent_client_config(config)
-    store.clear_bootstrap_categories(config["provider"])
+    store.clear_bootstrap_scopes(config["provider"])
     await service.reconfigure(client, config["provider"])
     await service.refresh_scopes(force=True)
 
@@ -307,30 +292,16 @@ async def diagnostics():
             "managed_scopes": sorted(service.managed_scopes),
             "discovered_scopes": service.discovered_scopes,
             "scope_source": service.scope_source,
-            "scope_auto_bootstrap": settings.auto_bootstrap_scopes,
+            "scope_auto_bootstrap": settings.torrent_auto_bootstrap_scopes,
             "scope_bootstrap_complete": snapshot["scope_bootstrap_complete"],
             "scope_fail_closed": not bool(service.managed_scopes),
-            "inspect_all_states": settings.inspect_all_states,
+            "inspect_all_states": settings.torrent_inspect_all_states,
             "action_states": sorted(settings.action_states),
+            "supports_delete_data": service.supports_delete_data,
             "policy_fingerprint": settings.policy_fingerprint,
         },
         "service": snapshot,
         "storage": store.stats(),
-        # Compatibility block retained while RogueDashboard/RMV tooling moves
-        # to the generic torrent_client diagnostics object.
-        "qbittorrent": {
-            "connected": (
-                bool(service.last_success_at and not service.last_error)
-                and service.client_name == "qbittorrent"
-            ),
-            "version": (
-                service.last_client_version
-                if service.client_name == "qbittorrent"
-                else None
-            ),
-            "managed_categories": sorted(service.managed_scopes),
-            "discovered_categories": service.discovered_scopes,
-        },
     }
 
 
