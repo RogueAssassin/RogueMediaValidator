@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.4.0 - testing
+
+Multi-client architecture and guided installation milestone.
+
+### Added
+
+- Torrent-client adapter interface separating the validator from provider-specific APIs.
+- qBittorrent adapter moved behind the shared provider interface.
+- Transmission adapter with modern JSON-RPC support, legacy Transmission 4.0 RPC fallback, CSRF session handling and optional Basic authentication.
+- Transmission label discovery and multi-label scope matching.
+- Provider-normalized torrent state, file metadata, resume and delete behavior.
+- Guided `/setup` Installation page.
+- Supported/planned torrent-client selector.
+- Connection testing before setup can be saved.
+- Provider-specific managed-scope persistence.
+- Setup configuration persistence inside RMV's private data volume.
+- Automatic redirect to Installation on a fresh unconfigured deployment.
+- Generic `torrent_client` diagnostics/API model.
+- Setup write lock controlled by `RMV_SETUP_UNLOCK`.
+- Setup and Transmission regression tests.
+
+### Changed
+
+- Dashboard terminology is now provider-neutral.
+- qBittorrent categories and Transmission labels are normalized as RMV scopes.
+- Fresh `.env.example` no longer assumes qBittorrent.
+- New generic `RMV_TORRENT_*` settings replace qBittorrent-specific settings for fresh installs.
+- Legacy `RMV_QB_*` settings remain supported for 0.3.x upgrades.
+- Testing image advances to `0.4.0-testing`.
+
+### Security
+
+- RMV still does not require Docker or Podman socket access.
+- Provider setup communicates only with the selected torrent client API.
+- Setup writes lock after configuration unless explicitly unlocked.
+- Client passwords are not returned through diagnostics.
+
+
 ## 0.3.1 - testing
 
 Dashboard simplification and visual cleanup.
