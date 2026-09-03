@@ -37,6 +37,24 @@ docker compose --env-file .env -f compose.yaml up -d
 
 Both engines use the same managed named volume, `roguemediavalidator-data`, for `/data`. RMV itself runs as non-root UID 10001.
 
+## Applying configuration changes
+
+After editing `.env`, recreate the RMV container. Restarting an existing container does not reload environment variables.
+
+Podman:
+
+```bash
+podman compose --env-file .env -f compose.yaml up -d --force-recreate
+```
+
+Docker:
+
+```bash
+docker compose --env-file .env -f compose.yaml up -d --force-recreate
+```
+
+`down` followed by `up -d` is also valid. Avoid `down -v` unless deleting RMV's database is intentional.
+
 ## First-run checks
 
 ```bash
