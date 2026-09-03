@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -16,8 +16,6 @@ from .store import Store
 settings = get_settings()
 log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
 logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-# Keep the fast validation loop quiet: dependency request logs add noise and I/O
-# without helping normal operation. RMV still logs validation decisions and errors.
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 store = Store(settings.data_dir / "rmv.db")
@@ -29,10 +27,14 @@ templates = Jinja2Templates(directory="app/templates")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(service.loop())
-    yield
-    service.stop()
-    task.cancel()
-    await qb.close()
+    try:
+        yield
+    finally:
+        service.stop()
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+        await qb.close()
 
 
 app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
@@ -88,7 +90,9 @@ async def diagnostics():
             "url": settings.qb_url,
             "connected": bool(service.last_success_at and not service.last_error),
             "version": service.last_qb_version,
-            "categories": sorted(settings.categories),
+            "configured_categories": sorted(settings.categories),
+            "discovered_categories": service.discovered_categories,
+            "category_scope_fail_closed": not bool(settings.categories),
             "inspect_all_states": settings.qb_inspect_all_states,
             "action_states": sorted(settings.action_states),
         },
