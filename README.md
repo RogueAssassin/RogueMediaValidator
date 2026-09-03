@@ -8,150 +8,586 @@
     <td align="left">
       <h1>RogueMediaValidator</h1>
       <p><strong>Validate. Protect. Automate.</strong></p>
-      <p>Pre-download payload validation • qBittorrent • Radarr • Sonarr • Docker • Podman</p>
+      <p>Pre-download torrent payload validation for qBittorrent media automation.</p>
     </td>
   </tr>
 </table>
 
-[![Stable](https://img.shields.io/badge/TESTING-0.1.2-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/main)
-[![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
+[![Testing](https://img.shields.io/badge/TESTING-0.1.3-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![GHCR](https://img.shields.io/badge/GHCR-TESTING-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
 ![Runtime](https://img.shields.io/badge/RUNTIME-PYTHON%203.12-ff4fc8?style=for-the-badge&labelColor=45464d)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
 </div>
 
-RogueMediaValidator (RMV) is a lightweight pre-download validation service for qBittorrent-driven Radarr and Sonarr stacks. It checks the actual torrent file list, requires a real approved video payload, blocks executable/script content, fails closed on unknown file types and records every decision in a local SQLite audit history.
+RogueMediaValidator (RMV) is a lightweight safety gate for qBittorrent-based media automation. It examines the torrent file list exposed by qBittorrent before an automated download is allowed to continue, applies a strict payload policy, records every decision in SQLite, and can optionally resume approved downloads or remove rejected ones.
 
-## Stable release
+RMV is intentionally independent of Radarr and Sonarr APIs in the current release. It scopes work by **qBittorrent categories**, so your category names do not need to be `radarr` and `sonarr`. If your download client uses `tv` and `movies`, configure exactly those names.
 
-**v0.1.2-testing** is the live-server readiness stage built on the stable v0.1.0 base. The tested branch has been promoted to `main`, and the production container channel is:
+## Current testing release
+
+**v0.1.3-testing** adds category discovery and fail-closed category scoping.
+
+Testing image:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:testing
 ```
 
-The `testing` branch now inspects every Radarr/Sonarr torrent state, while restricting resume/delete actions to active download-lifecycle states. This catches releases as soon as qBittorrent exposes their file metadata without risking completed/seeding torrents.
-
-## Why RMV
-
-Release names can look legitimate while the torrent payload is not. RMV validates torrent metadata itself before an automated download is allowed to continue.
-
-## What RMV does
-
-- Scopes validation to configured qBittorrent categories such as `radarr` and `sonarr`.
-- Requires at least one approved video file.
-- Rejects executable, installer and script extensions.
-- Rejects unknown extensions by default instead of silently trusting them.
-- Enforces a minimum real-video size sanity check.
-- Runs in safe audit-only dry-run mode by default.
-- Resumes approved torrents automatically when enforcement is enabled.
-- Removes rejected torrents and optionally deletes their data.
-- Records validation results in SQLite.
-- Exposes a lightweight dashboard and read-only health/statistics APIs.
-- Runs rootless-friendly with dropped Linux capabilities and `no-new-privileges`.
-- Supports qBittorrent login responses using either the standard `Ok.` body or a successful empty 2xx/204 response.
-
-## Port model
-
-RMV reserves **7811 as its internal application port**. The host-side port is independently configurable:
-
-```env
-RMV_HTTP_PORT=7811
-```
-
-Default mapping:
-
-```text
-host 7811 -> container 7811
-```
-
-## Container images
-
-Stable:
+Stable image remains:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:latest
-ghcr.io/rogueassassin/roguemediavalidator:0.1.2-testing
 ```
 
-Development:
+Do not assume the testing image is production-ready until your own qBittorrent workflow has been validated in dry-run mode.
+
+## Why RMV exists
+
+Automation normally trusts the release selected by an indexer/download pipeline. A release name can look legitimate even when its actual torrent payload contains unwanted or dangerous files. RMV validates the **file metadata qBittorrent receives for the torrent itself** rather than trusting the release name.
+
+RMV currently checks:
+
+- qBittorrent category scope.
+- torrent state and whether an action is safe in that state.
+- presence of at least one approved video file.
+- blocked executable, installer and script extensions.
+- unknown/unapproved extensions.
+- minimum real-video file size.
+- dry-run versus enforcement mode.
+- previous validation/enforcement state.
+- qBittorrent connectivity and version.
+- configured versus discovered qBittorrent categories.
+
+## Important security boundary
+
+RMV is a **metadata validator**, not an antivirus engine.
+
+Before a torrent downloads, qBittorrent can expose filenames and declared file sizes. RMV can therefore reject suspicious extensions, unexpected payload structure, missing video content and implausibly small media files before download.
+
+RMV cannot inspect the actual bytes of a file that has not downloaded yet. It cannot prove that a file named `movie.mkv` contains valid video data or detect malware embedded inside an apparently legitimate media container. Future post-download validation could add MIME/signature/ffprobe inspection, but that is a separate security layer.
+
+## Category model
+
+RMV scopes torrents using the category reported by qBittorrent.
+
+For the RogueGaming media stack:
+
+```env
+RMV_QB_CATEGORIES=tv,movies
+```
+
+Category matching is case-insensitive.
+
+### Fail-closed behavior
+
+An empty category list means **manage nothing**:
+
+```env
+RMV_QB_CATEGORIES=
+```
+
+This is deliberate. A missing environment variable must never silently expand RMV to every torrent.
+
+To intentionally include every non-empty qBittorrent category:
+
+```env
+RMV_QB_CATEGORIES=*
+```
+
+Using `*` is not recommended for normal media automation because manual/non-media categories may then be inspected or actioned.
+
+## Automatic category discovery
+
+RMV retrieves qBittorrent's configured categories from:
 
 ```text
-ghcr.io/rogueassassin/roguemediavalidator:testing
+/api/v2/torrents/categories
 ```
 
-## Install with Podman
+Discovery does **not** automatically grant enforcement scope. It tells you what qBittorrent has configured so you can explicitly choose the categories RMV is allowed to manage.
+
+After RMV has connected, inspect:
 
 ```bash
-mkdir -p /opt/media-server/roguemediavalidator
-cd /opt/media-server/roguemediavalidator
-
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/compose.podman.yaml -o compose.podman.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/.env.example -o .env
-
-podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
-podman compose --env-file .env -f compose.podman.yaml pull
-podman compose --env-file .env -f compose.podman.yaml up -d
+curl -s http://127.0.0.1:7811/api/diagnostics | python3 -m json.tool
 ```
 
-Open `http://localhost:7811`.
+Look for:
 
-The Podman compose uses a managed named volume with `:U` ownership handling so SQLite remains writable under rootless Podman.
+```json
+"configured_categories": [
+  "movies",
+  "tv"
+],
+"discovered_categories": [
+  "movies",
+  "tv"
+]
+```
 
-## Safe first run
+If qBittorrent contains additional categories, they will appear under `discovered_categories` but will remain out of scope unless added to `RMV_QB_CATEGORIES`.
 
-Leave:
+The discovery cache refresh interval is controlled by:
+
+```env
+RMV_QB_CATEGORY_REFRESH_SECONDS=60
+```
+
+The application enforces a minimum effective refresh interval of 15 seconds.
+
+## Validation flow
+
+```text
+Radarr / Sonarr / other automation
+              |
+              v
+         qBittorrent
+              |
+              | torrent metadata
+              v
+     RogueMediaValidator
+              |
+      category in scope?
+          /       \
+        no         yes
+        |           |
+     ignore     fetch files
+                    |
+              validate payload
+               /          \
+          approved        blocked
+             |               |
+        dry-run?          dry-run?
+         /   \             /   \
+       yes   no          yes    no
+       |      |           |      |
+     audit  resume*     audit   remove*
+```
+
+`*` Actions are still restricted by qBittorrent state and their corresponding settings.
+
+## Inspection versus action
+
+RMV deliberately separates **inspection** from **action**.
+
+With:
+
+```env
+RMV_QB_INSPECT_ALL_STATES=true
+```
+
+every torrent in a configured category can be inspected when file metadata is available.
+
+Actions are limited to:
+
+```env
+RMV_QB_ACTION_STATES=pausedDL,stoppedDL,downloading,stalledDL,metaDL,queuedDL,checkingDL,forcedDL,allocating,checkingResumeData,moving
+```
+
+Completed, uploading or seeding torrents can be audited but are not removed merely because they are found later in a non-download state.
+
+For the strongest pre-download gate, configure your automation so newly added torrents arrive paused/stopped until RMV approves them.
+
+## Dry-run mode
+
+The default is:
 
 ```env
 RMV_DRY_RUN=true
 ```
 
-until real qBittorrent metadata and validation decisions have been reviewed. qBittorrent should receive automated Radarr/Sonarr torrents paused so RMV can inspect the torrent file metadata before payload download begins.
+Dry-run performs discovery, inspection, validation, logging and database recording but does not resume or delete torrents.
 
-## Validation policy
+Keep dry-run enabled until you have observed real `tv` and `movies` downloads and confirmed that RMV classifies them correctly.
 
-Default approved video formats:
+Only then consider:
+
+```env
+RMV_DRY_RUN=false
+```
+
+## Enforcement settings
+
+These settings only become effective when dry-run is disabled:
+
+```env
+RMV_AUTO_RESUME_VALID=true
+RMV_REMOVE_REJECTED=true
+RMV_DELETE_REJECTED_DATA=true
+```
+
+Behavior:
+
+- approved paused/stopped downloads may be started when `RMV_AUTO_RESUME_VALID=true`.
+- blocked torrents may be removed when `RMV_REMOVE_REJECTED=true`.
+- their payload data may also be deleted when `RMV_DELETE_REJECTED_DATA=true`.
+- torrents outside the configured action states are never deleted by RMV.
+
+For the first enforcement test, consider temporarily setting:
+
+```env
+RMV_DELETE_REJECTED_DATA=false
+```
+
+until removal behavior has been confirmed.
+
+## Default payload policy
+
+Approved video extensions:
 
 ```text
 mkv mp4 m4v avi ts m2ts webm mov
 ```
 
-Default supporting formats:
+Approved support extensions:
 
 ```text
 srt ass ssa sub idx nfo jpg jpeg png txt
 ```
 
-Default blocked formats include:
+Blocked extensions:
 
 ```text
 exe scr com bat cmd msi msix ps1 psm1 vbs vbe js jse wsf wsh lnk pif cpl jar apk dll
 ```
 
-A torrent containing an approved video plus a blocked or unknown payload still fails.
+Minimum largest video size:
 
-## CI and testing
+```env
+RMV_MIN_VIDEO_SIZE_MB=50
+```
 
-CI runs Ruff, unit tests, Python bytecode compilation, Compose validation and a container build. GHCR publishing builds Linux amd64/arm64 images with provenance and SBOM metadata.
+A torrent is blocked when:
 
-The stable release includes regression coverage for SQLite storage and qBittorrent authentication compatibility.
+- it contains a blocked extension;
+- it contains no approved video file;
+- its largest approved video is below the configured minimum;
+- or it contains an extension that is neither an approved video nor an approved supporting type.
 
-See [docs/TESTING.md](docs/TESTING.md), [docs/INSTALL.md](docs/INSTALL.md) and [MILESTONES.md](MILESTONES.md).
+A torrent containing both valid video and a blocked/unknown file still fails.
 
-## Rogue ecosystem
+## qBittorrent connectivity
 
-RMV is designed to integrate with [RogueDashboard](https://github.com/RogueAssassin/RogueDashboard) after standalone validation is proven on the live media stack. RogueDashboard integration will consume RMV's lightweight APIs rather than container-engine access.
+Default container-to-container endpoint:
+
+```env
+RMV_QB_URL=http://qbittorrent:8080
+```
+
+This must be the address reachable **from inside the RMV container**. It is not necessarily the host-published qBittorrent port.
+
+Credentials:
+
+```env
+RMV_QB_USERNAME=admin
+RMV_QB_PASSWORD=change-me
+```
+
+RMV accepts qBittorrent's standard successful `Ok.` login response and successful empty 2xx/204 responses. Expired sessions are authenticated again once automatically. Connection establishment uses bounded timeouts and connection retries rather than waiting indefinitely.
+
+## Port model
+
+RMV always listens on TCP **7811 inside the container**.
+
+Host mapping:
+
+```env
+RMV_HTTP_PORT=7811
+```
+
+Default:
+
+```text
+host 7811 -> container 7811
+```
+
+The host port can change without changing the internal application port.
+
+## Podman installation
+
+```bash
+mkdir -p /opt/media-server/roguemediavalidator
+cd /opt/media-server/roguemediavalidator
+
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.podman.yaml -o compose.podman.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
+
+chmod 600 .env
+nano .env
+```
+
+Set at minimum:
+
+```env
+RMV_QB_URL=http://qbittorrent:8080
+RMV_QB_USERNAME=YOUR_USERNAME
+RMV_QB_PASSWORD=YOUR_PASSWORD
+RMV_QB_CATEGORIES=tv,movies
+RMV_DRY_RUN=true
+```
+
+Then:
+
+```bash
+podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
+podman compose --env-file .env -f compose.podman.yaml config
+podman compose --env-file .env -f compose.podman.yaml pull
+podman compose --env-file .env -f compose.podman.yaml up -d
+```
+
+The Podman compose uses a named volume with `:U` ownership handling so the non-root RMV process can write SQLite safely under rootless Podman.
+
+## Docker installation
+
+Use `compose.yaml` instead:
+
+```bash
+docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
+docker compose --env-file .env -f compose.yaml config
+docker compose --env-file .env -f compose.yaml pull
+docker compose --env-file .env -f compose.yaml up -d
+```
+
+## First-run verification
+
+Check the container:
+
+```bash
+podman ps --filter name=roguemediavalidator
+podman logs --tail 100 roguemediavalidator
+```
+
+Health:
+
+```bash
+curl -s http://127.0.0.1:7811/api/health | python3 -m json.tool
+```
+
+Diagnostics and category discovery:
+
+```bash
+curl -s http://127.0.0.1:7811/api/diagnostics | python3 -m json.tool
+```
+
+Recent validation history:
+
+```bash
+curl -s http://127.0.0.1:7811/api/validations | python3 -m json.tool
+```
+
+Statistics:
+
+```bash
+curl -s http://127.0.0.1:7811/api/stats | python3 -m json.tool
+```
+
+Dashboard:
+
+```text
+http://localhost:7811
+```
+
+## Health states
+
+`/api/health` reports:
+
+- `starting` before the first successful validation cycle;
+- `healthy` after successful qBittorrent communication;
+- `degraded` when the most recent cycle failed.
+
+The container healthcheck intentionally checks that the RMV web process responds. A temporary qBittorrent outage should be surfaced as degraded diagnostics rather than causing the container engine to repeatedly restart a healthy RMV process.
+
+## SQLite storage
+
+Validation history is stored in:
+
+```text
+/data/rmv.db
+```
+
+RMV runs as non-root UID `10001`.
+
+SQLite is configured with WAL journaling, a busy timeout and normal synchronous mode to reduce lock contention between the background validation loop and dashboard/API reads.
+
+Do not delete the RMV data volume unless you intentionally want to remove validation history.
+
+## API reference
+
+### GET /api/health
+
+High-level service health, qBittorrent connectivity, version, dry-run mode and last cycle details.
+
+### GET /api/diagnostics
+
+Operational diagnostics including:
+
+- qBittorrent URL;
+- qBittorrent connection state/version;
+- configured categories;
+- discovered qBittorrent categories;
+- whether category scope is currently fail-closed;
+- inspect/action state policy;
+- torrent counters;
+- storage statistics.
+
+The endpoint never returns the qBittorrent password.
+
+### GET /api/validations?limit=50
+
+Recent validation records. Limit is clamped to 1-500.
+
+### GET /api/stats
+
+Validation totals for approved, blocked and handled/enforced records.
+
+All current APIs are read-only.
+
+## Rootless/container security
+
+The supplied compose configuration uses:
+
+```yaml
+security_opt:
+  - no-new-privileges:true
+cap_drop:
+  - ALL
+```
+
+The image runs as UID `10001`, not root.
+
+RMV does not require the Docker or Podman socket and should never be given container-engine control.
+
+During testing, keep port 7811 private to the host/LAN and do not expose RMV directly to the public Internet.
+
+## Updating
+
+Podman:
+
+```bash
+cd /opt/media-server/roguemediavalidator
+podman compose --env-file .env -f compose.podman.yaml pull
+podman compose --env-file .env -f compose.podman.yaml up -d
+```
+
+Docker:
+
+```bash
+docker compose --env-file .env -f compose.yaml pull
+docker compose --env-file .env -f compose.yaml up -d
+```
+
+Your `.env` and named SQLite volume remain outside the image.
+
+## Troubleshooting
+
+### No torrents are being inspected
+
+Check:
+
+```bash
+curl -s http://127.0.0.1:7811/api/diagnostics | python3 -m json.tool
+```
+
+Compare `configured_categories` with `discovered_categories`.
+
+A blank `RMV_QB_CATEGORIES` is intentionally fail-closed.
+
+### qBittorrent connection fails
+
+Verify that `RMV_QB_URL` uses qBittorrent's internal container port on the shared network, then test DNS/network connectivity from the RMV container.
+
+Also verify username/password and qBittorrent WebUI authentication settings.
+
+### SQLite cannot open the database
+
+Use `compose.podman.yaml` under rootless Podman. It applies `:U` ownership handling to the named data volume.
+
+### A legitimate release is blocked
+
+Read the validation reason in the dashboard or `/api/validations`. Common causes are an unapproved support extension or a video smaller than `RMV_MIN_VIDEO_SIZE_MB`.
+
+Do not simply add broad executable/archive extensions to the support allowlist. Adjust policy narrowly.
+
+### RMV sees categories but ignores one
+
+Discovery and permission are separate by design. Add the category explicitly to `RMV_QB_CATEGORIES`.
+
+## Recommended live-testing sequence
+
+1. Run `:testing` with `RMV_DRY_RUN=true`.
+2. Confirm qBittorrent connection and version.
+3. Confirm `discovered_categories` contains `tv` and `movies`.
+4. Confirm `configured_categories` is exactly the set RMV should manage.
+5. Submit known-good TV and movie torrents.
+6. Confirm approved decisions without actions.
+7. Test known-bad synthetic metadata through automated tests rather than deliberately downloading malware.
+8. Restart RMV and confirm audit history persists.
+9. Confirm qBittorrent outage/recovery behavior.
+10. Temporarily use `RMV_DELETE_REJECTED_DATA=false` for the first enforcement test if desired.
+11. Switch `RMV_DRY_RUN=false` only after classifications are correct.
+12. Integrate RMV into the permanent media-server stack only after standalone behavior is proven.
+
+## CI and release pipeline
+
+Every push/PR to `main` and `testing` runs:
+
+- Ruff static analysis;
+- pytest regression tests;
+- Python compile validation;
+- Compose validation;
+- container build.
+
+The publish workflow builds Linux `amd64` and `arm64` images and publishes provenance and SBOM metadata.
+
+Channels:
+
+```text
+testing branch -> :testing and :0.1.3-testing
+main branch    -> :latest and stable version tag
+git tag v*     -> matching tag metadata
+```
+
+## Current hardening priorities
+
+The 0.1.x line now covers the basic safe validation gate. Further hardening planned for 0.2.x includes:
+
+- structured reason codes and complete per-file decision detail;
+- policy fingerprints so a torrent can be automatically revalidated when validation rules change;
+- richer action outcome/idempotency records;
+- optional quarantine workflows;
+- explicit administrative API authentication before any write APIs are introduced;
+- controlled policy editor/test mode;
+- more detailed connection diagnostics;
+- retention/backup controls for audit history;
+- optional post-download media signature/ffprobe validation.
+
+## Rogue ecosystem roadmap
+
+Once standalone RMV validation is proven, RogueDashboard integration can consume RMV's read-only APIs for:
+
+- health/status;
+- dry-run/enforcement state;
+- configured/discovered categories;
+- approved/blocked counters;
+- recent validation reasons.
+
+This keeps RogueDashboard integration lightweight and avoids sharing the Docker/Podman socket.
+
+## Documentation
+
+Additional documentation:
+
+- [Installation](docs/INSTALL.md)
+- [Testing](docs/TESTING.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Milestones](MILESTONES.md)
+- [Changelog](CHANGELOG.md)
+- [Security policy](SECURITY.md)
 
 ## License
 
 MIT
-
-
-## 0.1.2 testing live-inspection model
-
-RMV now separates **inspection** from **action**. Every torrent in configured Arr categories is inspected when its file metadata becomes available, regardless of qBittorrent state. Actions remain limited to download-lifecycle states such as paused/stopped, downloading, stalled, metadata, queued and checking states. Completed or seeding torrents can be audited but are never deleted by RMV.
-
-The default poll interval is 2 seconds. For the strongest pre-download gate, configure Radarr/Sonarr/qBittorrent so automated grabs arrive paused; RMV will still inspect an active download if it starts before the first validation cycle.
