@@ -15,12 +15,15 @@ chmod 600 .env
 
 The fresh 0.4.0 environment leaves `RMV_TORRENT_CLIENT` blank so the Installation page is used.
 
-Keep:
+Set the external network shared with the torrent client, then keep dry-run enabled:
 
 ```env
+RMV_NETWORK=media-net
 RMV_DRY_RUN=true
 RMV_SETUP_UNLOCK=false
 ```
+
+If your torrent client uses a different external network name, change only `RMV_NETWORK`; the compose file does not need editing.
 
 ## 2. Start RMV
 
