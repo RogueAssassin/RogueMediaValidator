@@ -8,8 +8,8 @@ RogueMediaValidator 0.5.x uses one `compose.yaml` for both Docker and Podman and
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/.env.example -o .env
 chmod 600 .env
 ```
 
