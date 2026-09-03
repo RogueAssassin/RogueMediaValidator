@@ -10,37 +10,173 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-<div class="shell">
-  <aside>
-    <div class="brand">
-      <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="52" height="52" alt="RMV">
-      <div><strong>RogueMediaValidator</strong><small>Validate. Protect. Automate.</small></div>
-    </div>
-    <nav><a class="active">Dashboard</a><a href="#activity">Activity</a><a href="#policy">Policy</a><a href="/api/diagnostics">Diagnostics</a></nav>
-    <div class="status"><span></span> Validator online<br><small>v{{ version }} · {% if settings.dry_run %}Dry run{% else %}Enforcing{% endif %}</small></div>
-  </aside>
-  <main>
-    <header>
-      <div><h1>Media Validation</h1><p>Inspect every Arr torrent early; act only while it is in the download lifecycle.</p></div>
-      <div class="pill">qBittorrent · {{ health.qbittorrent_version or 'connecting' }}</div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RMV">
+        <div class="brand-copy">
+          <strong>RogueMediaValidator</strong>
+          <span>Validate. Protect. Automate.</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <span class="health-chip {{ health.status }}">
+          <i></i>
+          {{ 'Connected' if health.qbittorrent_connected else health.status|title }}
+        </span>
+        <span class="mode-chip {{ 'dry' if settings.dry_run else 'live' }}">
+          {{ 'Dry run' if settings.dry_run else 'Enforcing' }}
+        </span>
+        <span class="version">v{{ version }}</span>
+        <a class="button secondary" href="/api/diagnostics" target="_blank" rel="noopener">Diagnostics</a>
+      </div>
     </header>
-    <section class="cards">
-      <article><small>Total checked</small><b>{{ stats.total }}</b></article>
-      <article><small>Approved</small><b class="good">{{ stats.approved }}</b></article>
-      <article><small>Blocked</small><b class="bad">{{ stats.blocked }}</b></article>
-      <article><small>Mode</small><b>{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</b></article>
-    </section>
-    <section class="panel" id="activity">
-      <div class="panel-head"><h2>Recent validation activity</h2><span>Actual torrent file metadata</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Status</th><th>Release</th><th>Category</th><th>Videos</th><th>Action</th><th>Action status</th><th>Result</th></tr></thead><tbody>
-      {% for row in recent %}<tr><td><span class="tag {{ row.status }}">{{ row.status }}</span></td><td>{{ row.torrent_name }}</td><td>{{ row.category }}</td><td>{{ row.video_files }}</td><td>{{ row.action }}</td><td>{{ row.action_status }}</td><td>{{ row.reason }}</td></tr>{% else %}<tr><td colspan="7" class="empty">No in-scope torrents have been validated yet.</td></tr>{% endfor %}
-      </tbody></table></div>
-    </section>
-    <section class="grid2" id="policy">
-      <article class="panel"><h2>Live inspection</h2><p><strong>qBittorrent:</strong> {{ 'Connected' if health.qbittorrent_connected else health.status }}</p><p><strong>Inspect states:</strong> {{ 'All' if settings.qb_inspect_all_states else 'Action states only' }}</p><p><strong>Poll interval:</strong> {{ settings.poll_seconds }}s</p><p><strong>Managed categories:</strong> {{ health.diagnostics.managed_categories | join(', ') if health.diagnostics.managed_categories else 'None' }}</p><p><strong>Category source:</strong> {{ health.diagnostics.category_source }}</p><p><strong>Discovered:</strong> {{ health.diagnostics.discovered_categories | join(', ') if health.diagnostics.discovered_categories else 'None yet' }}</p><p><strong>Policy fingerprint:</strong> {{ settings.policy_fingerprint }}</p></article>
-      <article class="panel"><h2>Action safety</h2><p><strong>Action states:</strong> {{ settings.qb_action_states }}</p><p>Blocked completed/seeding torrents are recorded but never deleted.</p><p>Paused/stopped approved torrents can be resumed after enforcement is enabled.</p></article>
-    </section>
-  </main>
-</div>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Media validation</p>
+          <h1>qBittorrent protection at a glance</h1>
+          <p>RMV inspects in-scope torrent metadata, blocks unsafe payloads, and keeps enforcement limited to safe download states.</p>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Validation summary">
+        <article class="metric">
+          <span>Checked</span>
+          <strong>{{ stats.total }}</strong>
+          <small>validation records</small>
+        </article>
+        <article class="metric">
+          <span>Approved</span>
+          <strong class="good">{{ stats.approved }}</strong>
+          <small>safe payloads</small>
+        </article>
+        <article class="metric">
+          <span>Blocked</span>
+          <strong class="bad">{{ stats.blocked }}</strong>
+          <small>rejected payloads</small>
+        </article>
+        <article class="metric">
+          <span>Action failures</span>
+          <strong class="{{ 'bad' if stats.action_failures else '' }}">{{ stats.action_failures }}</strong>
+          <small>enforcement errors</small>
+        </article>
+      </section>
+
+      <section class="overview-grid">
+        <article class="panel status-panel">
+          <div class="panel-title">
+            <div>
+              <span class="section-label">Connection</span>
+              <h2>qBittorrent</h2>
+            </div>
+            <span class="state {{ 'ok' if health.qbittorrent_connected else 'warn' }}">
+              {{ 'Online' if health.qbittorrent_connected else health.status|title }}
+            </span>
+          </div>
+          <dl class="facts">
+            <div><dt>Version</dt><dd>{{ health.qbittorrent_version or 'Connecting…' }}</dd></div>
+            <div><dt>Torrents seen</dt><dd>{{ health.diagnostics.torrents_seen }}</dd></div>
+            <div><dt>In scope</dt><dd>{{ health.diagnostics.in_scope_torrents }}</dd></div>
+            <div><dt>Actionable</dt><dd>{{ health.diagnostics.actionable_torrents }}</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel categories-panel">
+          <div class="panel-title">
+            <div>
+              <span class="section-label">Scope</span>
+              <h2>Managed categories</h2>
+            </div>
+            <span class="state neutral">{{ health.diagnostics.category_source | replace('_', ' ') | title }}</span>
+          </div>
+
+          <div class="category-list">
+            {% for category in health.diagnostics.managed_categories %}
+              <span class="category-chip"><i></i>{{ category }}</span>
+            {% else %}
+              <span class="empty-inline">No managed categories</span>
+            {% endfor %}
+          </div>
+
+          {% set unmanaged = health.diagnostics.discovered_categories | reject('in', health.diagnostics.managed_categories) | list %}
+          {% if unmanaged %}
+          <div class="discovered-note">
+            <span>Discovered but unmanaged</span>
+            <strong>{{ unmanaged | join(', ') }}</strong>
+          </div>
+          {% endif %}
+        </article>
+      </section>
+
+      <section class="panel activity-panel">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">History</span>
+            <h2>Recent validation activity</h2>
+          </div>
+          <a class="text-link" href="/api/validations?limit=50" target="_blank" rel="noopener">View JSON</a>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Release</th>
+                <th>Category</th>
+                <th>Action</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for row in recent %}
+              <tr>
+                <td><span class="tag {{ row.status }}">{{ row.status }}</span></td>
+                <td class="release-cell">
+                  <strong>{{ row.torrent_name }}</strong>
+                  <small>{{ row.video_files }} video file{{ '' if row.video_files == 1 else 's' }}</small>
+                </td>
+                <td><span class="category-mini">{{ row.category or '—' }}</span></td>
+                <td>
+                  <span class="action-primary">{{ row.action }}</span>
+                  <small class="action-status">{{ row.action_status }}</small>
+                </td>
+                <td class="reason">{{ row.reason }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="empty">No in-scope torrents have been validated yet.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <details class="panel technical">
+        <summary>
+          <div>
+            <span class="section-label">Advanced</span>
+            <strong>Technical details</strong>
+          </div>
+          <span class="summary-hint">Policy & runtime state</span>
+        </summary>
+        <div class="technical-grid">
+          <dl class="facts compact">
+            <div><dt>Policy fingerprint</dt><dd><code>{{ settings.policy_fingerprint }}</code></dd></div>
+            <div><dt>Poll interval</dt><dd>{{ settings.poll_seconds }}s</dd></div>
+            <div><dt>Inspect states</dt><dd>{{ 'All states' if settings.qb_inspect_all_states else 'Action states only' }}</dd></div>
+            <div><dt>Category bootstrap</dt><dd>{{ 'Complete' if health.diagnostics.category_bootstrap_complete else 'Pending' }}</dd></div>
+          </dl>
+          <div class="technical-copy">
+            <span class="section-label">Action states</span>
+            <p>{{ settings.qb_action_states }}</p>
+            <small>Completed, seeding and upload-only torrents are inspection-only and are not destructively actioned.</small>
+          </div>
+        </div>
+      </details>
+    </main>
+  </div>
 </body>
 </html>
