@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from datetime import UTC, datetime
 
 from .config import Settings
@@ -11,13 +12,18 @@ log = logging.getLogger("rmv")
 
 
 def torrent_in_scope(torrent: dict, settings: Settings) -> bool:
-    category = str(torrent.get("category", "")).lower()
-    return not settings.categories or category in settings.categories
+    category = str(torrent.get("category", "")).strip().lower()
+    categories = settings.categories
+    if not categories:
+        return False
+    if "*" in categories:
+        return bool(category)
+    return category in categories
 
 
 def torrent_actionable(torrent: dict, settings: Settings) -> bool:
     state = str(torrent.get("state", "")).lower()
-    return not settings.action_states or state in settings.action_states
+    return bool(settings.action_states) and state in settings.action_states
 
 
 def torrent_should_inspect(torrent: dict, settings: Settings) -> bool:
@@ -38,20 +44,37 @@ class ValidationService:
         self.last_cycle_at: str | None = None
         self.last_success_at: str | None = None
         self.last_qb_version: str | None = None
+        self.discovered_categories: list[str] = []
+        self._category_refresh_monotonic = 0.0
         self.last_seen = 0
         self.last_in_scope = 0
         self.last_actionable = 0
         self.last_validated = 0
 
+    async def refresh_categories(self, *, force: bool = False):
+        refresh_after = max(15, self.settings.qb_category_refresh_seconds)
+        now = time.monotonic()
+        if force or now - self._category_refresh_monotonic >= refresh_after:
+            self.discovered_categories = await self.qb.categories()
+            self._category_refresh_monotonic = now
+
     async def run_once(self):
         if self.last_qb_version is None:
             self.last_qb_version = await self.qb.app_version()
 
+        await self.refresh_categories()
         torrents = await self.qb.torrents()
         self.last_seen = len(torrents)
         self.last_in_scope = 0
         self.last_actionable = 0
         self.last_validated = 0
+
+        if not self.settings.categories:
+            log.warning(
+                "No qBittorrent categories configured; RMV is fail-closed and will not inspect "
+                "or action torrents. Discovered categories: %s",
+                ", ".join(self.discovered_categories) or "(none)",
+            )
 
         for torrent in torrents:
             torrent_hash = str(torrent.get("hash", ""))
@@ -127,6 +150,8 @@ class ValidationService:
                 await self.run_once()
                 self.last_error = None
                 self.last_success_at = datetime.now(UTC).isoformat()
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 self.last_error = str(exc)
                 log.exception("Validation cycle failed")
@@ -139,6 +164,8 @@ class ValidationService:
             "last_cycle_at": self.last_cycle_at,
             "last_success_at": self.last_success_at,
             "qbittorrent_version": self.last_qb_version,
+            "configured_categories": sorted(self.settings.categories),
+            "discovered_categories": self.discovered_categories,
             "torrents_seen": self.last_seen,
             "in_scope_torrents": self.last_in_scope,
             "actionable_torrents": self.last_actionable,
