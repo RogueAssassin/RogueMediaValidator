@@ -1,15 +1,17 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager, suppress
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
 from . import __version__
+from .clients.factory import CLIENT_PROVIDERS, create_client
 from .config import get_settings
-from .qbittorrent import QBittorrentClient
 from .service import ValidationService
 from .store import Store
 
@@ -19,9 +21,69 @@ logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(name)s 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 store = Store(settings.data_dir / "rmv.db")
-qb = QBittorrentClient(settings.qb_url, settings.qb_username, settings.qb_password)
-service = ValidationService(settings, store, qb)
 templates = Jinja2Templates(directory="app/templates")
+
+
+def provider_meta(provider_id: str) -> dict | None:
+    provider_id = provider_id.strip().lower()
+    return next((item for item in CLIENT_PROVIDERS if item["id"] == provider_id), None)
+
+
+def environment_client_config() -> dict | None:
+    provider = settings.torrent_client.strip().lower()
+    if provider:
+        meta = provider_meta(provider)
+        default_url = str(meta.get("default_url", "")) if meta else ""
+        return {
+            "provider": provider,
+            "url": settings.torrent_url.strip() or default_url,
+            "username": settings.torrent_username,
+            "password": settings.torrent_password,
+        }
+
+    legacy_qb_keys = {
+        "RMV_QB_URL",
+        "RMV_QB_USERNAME",
+        "RMV_QB_PASSWORD",
+    }
+    if any(key in os.environ for key in legacy_qb_keys):
+        return {
+            "provider": "qbittorrent",
+            "url": settings.qb_url,
+            "username": settings.qb_username,
+            "password": settings.qb_password,
+        }
+    return None
+
+
+def resolved_client_config() -> tuple[dict | None, str]:
+    env_config = environment_client_config()
+    if env_config:
+        return env_config, "environment"
+
+    runtime = store.torrent_client_config()
+    if runtime:
+        return runtime, "setup"
+
+    return None, "none"
+
+
+initial_config, config_source = resolved_client_config()
+initial_client = None
+initial_provider = ""
+if initial_config:
+    try:
+        initial_client = create_client(
+            initial_config["provider"],
+            initial_config["url"],
+            initial_config.get("username", ""),
+            initial_config.get("password", ""),
+        )
+        initial_provider = str(initial_config["provider"])
+    except (KeyError, ValueError) as exc:
+        logging.getLogger("rmv").error("Invalid torrent client configuration: %s", exc)
+
+service = ValidationService(settings, store, initial_client, initial_provider)
 
 
 @asynccontextmanager
@@ -34,35 +96,74 @@ async def lifespan(app: FastAPI):
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
-        await qb.close()
+        await service.close()
 
 
 app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
+class SetupPayload(BaseModel):
+    provider: str
+    url: str
+    username: str = ""
+    password: str = ""
+
+
+def public_client_config() -> dict | None:
+    config, source = resolved_client_config()
+    if not config:
+        return None
+    return {
+        "provider": config.get("provider"),
+        "url": config.get("url"),
+        "username": config.get("username", ""),
+        "source": source,
+    }
+
+
 def health_payload() -> dict:
     diagnostics = service.snapshot()
-    if service.last_error:
+    if not service.configured:
+        status = "setup_required"
+    elif service.last_error:
         status = "degraded"
     elif service.last_success_at:
         status = "healthy"
     else:
         status = "starting"
+
+    connected = bool(
+        service.configured
+        and service.last_success_at
+        and not service.last_error
+    )
     return {
         "status": status,
         "version": __version__,
         "dry_run": settings.dry_run,
-        "qbittorrent_connected": bool(service.last_success_at and not service.last_error),
-        "qbittorrent_version": service.last_qb_version,
+        "torrent_client_connected": connected,
+        "torrent_client": service.client_name or None,
+        "torrent_client_name": service.display_name,
+        "torrent_client_version": service.last_client_version,
         "last_error": service.last_error,
         "last_success_at": service.last_success_at,
         "diagnostics": diagnostics,
+        # Compatibility aliases for 0.3.x integrations.
+        "qbittorrent_connected": connected and service.client_name == "qbittorrent",
+        "qbittorrent_version": (
+            service.last_client_version
+            if service.client_name == "qbittorrent"
+            else None
+        ),
     }
 
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
+    if not service.configured:
+        return RedirectResponse("/setup", status_code=307)
+
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -76,6 +177,111 @@ async def dashboard(request: Request):
     )
 
 
+@app.get("/setup", response_class=HTMLResponse)
+async def setup_page(request: Request):
+    current = public_client_config()
+    locked = service.configured and not settings.setup_unlock
+    return templates.TemplateResponse(
+        request=request,
+        name="setup.html",
+        context={
+            "version": __version__,
+            "providers": CLIENT_PROVIDERS,
+            "current": current,
+            "configured": service.configured,
+            "locked": locked,
+        },
+    )
+
+
+async def test_setup_payload(payload: SetupPayload, *, keep_client: bool = False):
+    meta = provider_meta(payload.provider)
+    if not meta or meta.get("status") != "supported":
+        raise HTTPException(status_code=400, detail="That torrent client is not supported yet.")
+
+    url = payload.url.strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Torrent client URL must use http:// or https://.")
+
+    client = create_client(
+        payload.provider,
+        url,
+        payload.username,
+        payload.password,
+    )
+    try:
+        version = await client.version()
+        scopes = await client.scopes()
+        result = {
+            "provider": payload.provider,
+            "name": client.display_name,
+            "version": version,
+            "scope_name": client.scope_name,
+            "scopes": scopes,
+        }
+        if keep_client:
+            return result, client
+        await client.close()
+        return result, None
+    except Exception:
+        await client.close()
+        raise
+
+
+@app.post("/api/setup/test")
+async def setup_test(payload: SetupPayload):
+    try:
+        result, _ = await test_setup_payload(payload)
+        return {"ok": True, **result}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/setup/save")
+async def setup_save(payload: SetupPayload):
+    if service.configured and not settings.setup_unlock:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Setup is locked after configuration. Set RMV_SETUP_UNLOCK=true "
+                "and recreate the container to reconfigure from the web UI."
+            ),
+        )
+
+    try:
+        result, client = await test_setup_payload(payload, keep_client=True)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    assert client is not None
+    config = {
+        "provider": payload.provider.strip().lower(),
+        "url": payload.url.strip(),
+        "username": payload.username,
+        "password": payload.password,
+    }
+    store.set_torrent_client_config(config)
+    store.clear_bootstrap_categories(config["provider"])
+    await service.reconfigure(client, config["provider"])
+    await service.refresh_scopes(force=True)
+
+    return {
+        "ok": True,
+        **result,
+        "managed_scopes": sorted(service.managed_scopes),
+        "redirect": "/",
+    }
+
+
+@app.get("/api/setup/providers")
+async def setup_providers():
+    return CLIENT_PROVIDERS
+
+
 @app.get("/api/health")
 async def health():
     return health_payload()
@@ -83,26 +289,48 @@ async def health():
 
 @app.get("/api/diagnostics")
 async def diagnostics():
+    snapshot = service.snapshot()
+    config = public_client_config()
     return {
         "version": __version__,
         "mode": "dry-run" if settings.dry_run else "enforcing",
-        "qbittorrent": {
-            "url": settings.qb_url,
+        "torrent_client": {
+            "provider": service.client_name or None,
+            "display_name": service.display_name,
+            "configured": service.configured,
+            "config_source": config.get("source") if config else "none",
+            "url": config.get("url") if config else None,
             "connected": bool(service.last_success_at and not service.last_error),
-            "version": service.last_qb_version,
-            "environment_categories": sorted(settings.categories),
-            "managed_categories": sorted(service.managed_categories),
-            "discovered_categories": service.discovered_categories,
-            "category_source": service.category_source,
-            "category_auto_bootstrap": settings.qb_auto_bootstrap_categories,
-            "category_bootstrap_complete": store.category_bootstrap_complete(),
-            "category_scope_fail_closed": not bool(service.managed_categories),
-            "inspect_all_states": settings.qb_inspect_all_states,
+            "version": service.last_client_version,
+            "scope_name": service.scope_name,
+            "environment_scopes": sorted(settings.scopes),
+            "managed_scopes": sorted(service.managed_scopes),
+            "discovered_scopes": service.discovered_scopes,
+            "scope_source": service.scope_source,
+            "scope_auto_bootstrap": settings.auto_bootstrap_scopes,
+            "scope_bootstrap_complete": snapshot["scope_bootstrap_complete"],
+            "scope_fail_closed": not bool(service.managed_scopes),
+            "inspect_all_states": settings.inspect_all_states,
             "action_states": sorted(settings.action_states),
             "policy_fingerprint": settings.policy_fingerprint,
         },
-        "service": service.snapshot(),
+        "service": snapshot,
         "storage": store.stats(),
+        # Compatibility block retained while RogueDashboard/RMV tooling moves
+        # to the generic torrent_client diagnostics object.
+        "qbittorrent": {
+            "connected": (
+                bool(service.last_success_at and not service.last_error)
+                and service.client_name == "qbittorrent"
+            ),
+            "version": (
+                service.last_client_version
+                if service.client_name == "qbittorrent"
+                else None
+            ),
+            "managed_categories": sorted(service.managed_scopes),
+            "discovered_categories": service.discovered_scopes,
+        },
     }
 
 
