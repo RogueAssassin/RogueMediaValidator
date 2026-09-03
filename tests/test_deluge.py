@@ -24,9 +24,7 @@ async def test_deluge_version_scope_files_and_delete():
         params = body.get("params", [])
         calls.append((method, params))
 
-        if method == "auth.login":
-            result = True
-        elif method == "web.connected":
+        if method in {"auth.login", "web.connected"}:
             result = True
         elif method == "core.get_version":
             result = "2.2.0"
