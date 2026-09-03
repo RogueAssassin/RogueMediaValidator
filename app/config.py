@@ -1,3 +1,5 @@
+import hashlib
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -18,8 +20,6 @@ class Settings(BaseSettings):
     qb_url: str = "http://qbittorrent:8080"
     qb_username: str = ""
     qb_password: str = ""
-    # Fail closed when no categories are configured. Use "*" explicitly to
-    # inspect every non-empty qBittorrent category.
     qb_categories: str = ""
     qb_inspect_all_states: bool = True
     qb_category_refresh_seconds: int = 60
@@ -61,6 +61,17 @@ class Settings(BaseSettings):
     @property
     def action_states(self) -> frozenset[str]:
         return self._csv(self.qb_action_states)
+
+    @property
+    def policy_fingerprint(self) -> str:
+        policy = {
+            "video_extensions": sorted(self.video_exts),
+            "support_extensions": sorted(self.support_exts),
+            "blocked_extensions": sorted(self.blocked_exts),
+            "min_video_size_mb": self.min_video_size_mb,
+        }
+        encoded = json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()
+        return hashlib.sha256(encoded).hexdigest()[:16]
 
 
 @lru_cache
