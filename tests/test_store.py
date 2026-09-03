@@ -86,3 +86,13 @@ def test_policy_fingerprint_changes_when_validation_policy_changes():
     base = Settings(_env_file=None)
     changed = Settings(_env_file=None, min_video_size_mb=75)
     assert base.policy_fingerprint != changed.policy_fingerprint
+
+
+def test_bootstrap_categories_persist_across_store_instances(tmp_path: Path):
+    db_path = tmp_path / "rmv.db"
+    first = Store(db_path)
+    first.set_bootstrap_categories(["TV", "movies", "tv"])
+
+    second = Store(db_path)
+    assert second.category_bootstrap_complete() is True
+    assert second.bootstrap_categories() == frozenset({"movies", "tv"})
