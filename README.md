@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.3.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.3.1-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-TESTING-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -29,7 +29,7 @@ RMV is intentionally independent of Radarr and Sonarr APIs in the current releas
 
 ## Current testing release
 
-**v0.3.0-testing** adds first-run category automation on top of the 0.2.0 operational-safety foundation. A blank category configuration can now discover qBittorrent's existing categories, persist that initial set in SQLite, and immediately use it as RMV's managed scope.
+**v0.3.1-testing** refreshes the RMV dashboard around the now-proven 0.3.0 category automation. The unused navigation tabs are removed, diagnostics become a single utility action, and the main view focuses on validation totals, qBittorrent health, managed categories, recent activity, and compact expandable technical details.
 
 Testing image:
 
@@ -646,7 +646,7 @@ The publish workflow builds Linux `amd64` and `arm64` images and publishes prove
 Channels:
 
 ```text
-testing branch -> :testing and :0.3.0-testing
+testing branch -> :testing and :0.3.1-testing
 main branch    -> :latest and the current stable version tag
 git tag v*     -> matching tag metadata
 ```
