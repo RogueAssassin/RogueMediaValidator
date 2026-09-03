@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.1.3-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.2.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-TESTING-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -29,7 +29,7 @@ RMV is intentionally independent of Radarr and Sonarr APIs in the current releas
 
 ## Current testing release
 
-**v0.1.3-testing** adds category discovery and fail-closed category scoping.
+**v0.2.0-testing** is the first operational-safety milestone. It keeps the proven category-discovery/fail-closed model and adds policy-aware revalidation, structured action outcomes, and a single Docker/Podman Compose deployment.
 
 Testing image:
 
@@ -138,6 +138,23 @@ RMV_QB_CATEGORY_REFRESH_SECONDS=60
 ```
 
 The application enforces a minimum effective refresh interval of 15 seconds.
+
+
+## 0.2.0 policy-aware revalidation
+
+RMV now calculates a short SHA-256 fingerprint from the active payload policy (approved video extensions, approved support extensions, blocked extensions, and minimum video size). The fingerprint is stored with every validation record and exposed through diagnostics.
+
+If any of those validation rules change, an existing torrent hash is **not** treated as already validated under the new policy. RMV re-evaluates it automatically. This prevents stale decisions from surviving policy changes.
+
+Validation history also records structured action state:
+
+```text
+action        none | resume | delete
+action_status audit | not_required | inspection_only | success | failed
+action_error  populated only when an action fails
+```
+
+A failed qBittorrent action is stored as failed and is not marked enforced, so RMV does not falsely claim that enforcement succeeded.
 
 ## Validation flow
 
@@ -307,13 +324,13 @@ host 7811 -> container 7811
 
 The host port can change without changing the internal application port.
 
-## Podman installation
+## Install with Docker or Podman
 
 ```bash
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.podman.yaml -o compose.podman.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
 curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
 
 chmod 600 .env
@@ -334,16 +351,16 @@ Then:
 
 ```bash
 podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
-podman compose --env-file .env -f compose.podman.yaml config
-podman compose --env-file .env -f compose.podman.yaml pull
-podman compose --env-file .env -f compose.podman.yaml up -d
+podman compose --env-file .env -f compose.yaml config
+podman compose --env-file .env -f compose.yaml pull
+podman compose --env-file .env -f compose.yaml up -d
 ```
 
-The Podman compose uses a named volume with `:U` ownership handling so the non-root RMV process can write SQLite safely under rootless Podman.
+RMV now ships one `compose.yaml` for both Docker and Podman. It uses a managed named volume and keeps the application running as non-root UID `10001`.
 
-## Docker installation
+### Docker
 
-Use `compose.yaml` instead:
+Use the exact same `compose.yaml` with `docker compose`:
 
 ```bash
 docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
@@ -469,8 +486,8 @@ Podman:
 
 ```bash
 cd /opt/media-server/roguemediavalidator
-podman compose --env-file .env -f compose.podman.yaml pull
-podman compose --env-file .env -f compose.podman.yaml up -d
+podman compose --env-file .env -f compose.yaml pull
+podman compose --env-file .env -f compose.yaml up -d
 ```
 
 Docker:
@@ -504,7 +521,7 @@ Also verify username/password and qBittorrent WebUI authentication settings.
 
 ### SQLite cannot open the database
 
-Use `compose.podman.yaml` under rootless Podman. It applies `:U` ownership handling to the named data volume.
+RMV 0.2.0 uses one managed named volume for both Docker and Podman. If upgrading from an old test deployment with unusual ownership, recreate only the RMV container/volume after preserving any audit data you need.
 
 ### A legitimate release is blocked
 
@@ -546,18 +563,16 @@ The publish workflow builds Linux `amd64` and `arm64` images and publishes prove
 Channels:
 
 ```text
-testing branch -> :testing and :0.1.3-testing
-main branch    -> :latest and stable version tag
+testing branch -> :testing and :0.2.0-testing
+main branch    -> :latest and the current stable version tag
 git tag v*     -> matching tag metadata
 ```
 
 ## Current hardening priorities
 
-The 0.1.x line now covers the basic safe validation gate. Further hardening planned for 0.2.x includes:
+The 0.1.x line established the safe validation gate. 0.2.0 now adds policy fingerprints and structured action outcomes. Remaining 0.2.x hardening includes:
 
 - structured reason codes and complete per-file decision detail;
-- policy fingerprints so a torrent can be automatically revalidated when validation rules change;
-- richer action outcome/idempotency records;
 - optional quarantine workflows;
 - explicit administrative API authentication before any write APIs are introduced;
 - controlled policy editor/test mode;
