@@ -105,7 +105,13 @@ class ValidationService:
                 files=files,
                 settings=self.settings,
             )
-            self.store.save(result, enforced=False)
+            self.store.save(
+                result,
+                policy_fingerprint=fingerprint,
+                enforced=False,
+                action="none",
+                action_status="audit",
+            )
             self.last_validated += 1
             state = str(torrent.get("state", "unknown"))
             log.info(
@@ -120,27 +126,51 @@ class ValidationService:
                 continue
 
             if result.status == "approved":
-                if (
-                    actionable
-                    and state.lower() in {"pauseddl", "stoppeddl"}
-                    and self.settings.auto_resume_valid
+                    if (
+                        actionable
+                        and state.lower() in {"pauseddl", "stoppeddl"}
+                        and self.settings.auto_resume_valid
+                    ):
+                        action = "resume"
+                        await self.qb.resume(torrent_hash)
+                        action_status = "success"
+                elif (
+                    result.status == "blocked"
+                    and actionable
+                    and self.settings.remove_rejected
                 ):
-                    await self.qb.resume(torrent_hash)
-            elif (
-                result.status == "blocked"
-                and actionable
-                and self.settings.remove_rejected
-            ):
-                await self.qb.delete(torrent_hash, self.settings.delete_rejected_data)
-            elif result.status == "blocked" and not actionable:
-                log.warning(
-                    "BLOCKED payload found in non-actionable state %s for %s; "
-                    "recorded only, no torrent action taken",
-                    state,
-                    result.torrent_name,
+                    action = "delete"
+                    await self.qb.delete(torrent_hash, self.settings.delete_rejected_data)
+                    action_status = "success"
+                elif result.status == "blocked" and not actionable:
+                    action_status = "inspection_only"
+                    log.warning(
+                        "BLOCKED payload found in non-actionable state %s for %s; "
+                        "recorded only, no torrent action taken",
+                        state,
+                        result.torrent_name,
+                    )
+            except Exception as exc:
+                action_status = "failed"
+                action_error = str(exc)
+                self.store.save(
+                    result,
+                    policy_fingerprint=fingerprint,
+                    enforced=False,
+                    action=action,
+                    action_status=action_status,
+                    action_error=action_error,
                 )
+                raise
 
-            self.store.save(result, enforced=True)
+            self.store.save(
+                result,
+                policy_fingerprint=fingerprint,
+                enforced=True,
+                action=action,
+                action_status=action_status,
+                action_error=action_error,
+            )
 
     async def loop(self):
         self.running = True
@@ -169,7 +199,7 @@ class ValidationService:
             "torrents_seen": self.last_seen,
             "in_scope_torrents": self.last_in_scope,
             "actionable_torrents": self.last_actionable,
-            "validated_this_cycle": self.last_validated,
+            "validated_this_cycle": self.last_validated,\n            "policy_fingerprint": self.settings.policy_fingerprint,
         }
 
     def stop(self):
