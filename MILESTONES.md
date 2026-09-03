@@ -19,9 +19,10 @@
 
 ## 0.2.x — Operational safety
 
+- policy fingerprint/version so policy changes trigger revalidation ✅
+- structured action outcomes and failure visibility ✅
+- one Docker/Podman Compose deployment ✅
 - structured reason codes and complete per-file decision detail
-- policy fingerprint/version so policy changes trigger revalidation
-- richer action outcome and idempotency records
 - configurable quarantine behavior
 - API authentication before administrative/write APIs are introduced
 - policy editor with validation and test mode
