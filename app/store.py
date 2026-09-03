@@ -141,7 +141,7 @@ class Store:
         provider = provider.strip().lower() or "default"
         return f"{suffix}:{provider}"
 
-    def set_bootstrap_categories(self, categories: list[str], provider: str = "qbittorrent"):
+    def set_bootstrap_scopes(self, categories: list[str], provider: str = "qbittorrent"):
         normalized = sorted({x.strip().lower() for x in categories if x.strip()})
         self.set_runtime_setting(
             self._scope_key(provider, "bootstrap_scopes"),
@@ -152,13 +152,13 @@ class Store:
             "1",
         )
         if provider == "qbittorrent":
-            self.set_runtime_setting("bootstrap_categories", json.dumps(normalized))
-            self.set_runtime_setting("category_bootstrap_complete", "1")
+            self.set_runtime_setting("bootstrap_scopes", json.dumps(normalized))
+            self.set_runtime_setting("scope_bootstrap_complete", "1")
 
-    def bootstrap_categories(self, provider: str = "qbittorrent") -> frozenset[str]:
+    def bootstrap_scopes(self, provider: str = "qbittorrent") -> frozenset[str]:
         raw = self.get_runtime_setting(self._scope_key(provider, "bootstrap_scopes"))
         if not raw and provider == "qbittorrent":
-            raw = self.get_runtime_setting("bootstrap_categories")
+            raw = self.get_runtime_setting("bootstrap_scopes")
         if not raw:
             return frozenset()
         try:
@@ -169,15 +169,15 @@ class Store:
             return frozenset()
         return frozenset(str(x).strip().lower() for x in payload if str(x).strip())
 
-    def category_bootstrap_complete(self, provider: str = "qbittorrent") -> bool:
+    def scope_bootstrap_complete(self, provider: str = "qbittorrent") -> bool:
         value = self.get_runtime_setting(
             self._scope_key(provider, "scope_bootstrap_complete")
         )
         if value is None and provider == "qbittorrent":
-            value = self.get_runtime_setting("category_bootstrap_complete")
+            value = self.get_runtime_setting("scope_bootstrap_complete")
         return value == "1"
 
-    def clear_bootstrap_categories(self, provider: str):
+    def clear_bootstrap_scopes(self, provider: str):
         keys = [
             self._scope_key(provider, "bootstrap_scopes"),
             self._scope_key(provider, "scope_bootstrap_complete"),
