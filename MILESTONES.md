@@ -30,8 +30,12 @@
 - audit retention, export and backup controls
 - optional post-download media signature/ffprobe validation
 
-## 0.3.x — Arr integration
+## 0.3.x — Category automation and Arr integration
 
+- first-run qBittorrent category auto-bootstrap ✅
+- persisted managed-category source and diagnostics ✅
+- explicit environment override of auto-bootstrap ✅
+- no silent enrolment of categories added after bootstrap ✅
 - optional Radarr/Sonarr failed-download feedback
 - automatic retry/blacklist workflow
 - source/indexer context where available
