@@ -20,6 +20,7 @@ class Store:
         self.path = path
         try:
             with self._connect() as db:
+                db.execute("PRAGMA journal_mode=WAL")
                 db.execute("""
                     CREATE TABLE IF NOT EXISTS validations (
                         torrent_hash TEXT PRIMARY KEY,
@@ -49,7 +50,10 @@ class Store:
             ) from exc
 
     def _connect(self):
-        return sqlite3.connect(self.path)
+        db = sqlite3.connect(self.path, timeout=5)
+        db.execute("PRAGMA busy_timeout=5000")
+        db.execute("PRAGMA synchronous=NORMAL")
+        return db
 
     def save(self, result: ValidationResult, *, enforced: bool = False):
         data = result.as_dict()
