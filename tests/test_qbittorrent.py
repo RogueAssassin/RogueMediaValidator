@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from app.qbittorrent import QBittorrentClient
+from app.clients.qbittorrent import QBittorrentClient
 
 
 async def client_with(handler):
