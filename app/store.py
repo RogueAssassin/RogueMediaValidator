@@ -141,8 +141,8 @@ class Store:
         provider = provider.strip().lower() or "default"
         return f"{suffix}:{provider}"
 
-    def set_bootstrap_scopes(self, categories: list[str], provider: str = "qbittorrent"):
-        normalized = sorted({x.strip().lower() for x in categories if x.strip()})
+    def set_bootstrap_scopes(self, scopes: list[str], provider: str):
+        normalized = sorted({x.strip().lower() for x in scopes if x.strip()})
         self.set_runtime_setting(
             self._scope_key(provider, "bootstrap_scopes"),
             json.dumps(normalized),
@@ -151,14 +151,9 @@ class Store:
             self._scope_key(provider, "scope_bootstrap_complete"),
             "1",
         )
-        if provider == "qbittorrent":
-            self.set_runtime_setting("bootstrap_scopes", json.dumps(normalized))
-            self.set_runtime_setting("scope_bootstrap_complete", "1")
 
-    def bootstrap_scopes(self, provider: str = "qbittorrent") -> frozenset[str]:
+    def bootstrap_scopes(self, provider: str) -> frozenset[str]:
         raw = self.get_runtime_setting(self._scope_key(provider, "bootstrap_scopes"))
-        if not raw and provider == "qbittorrent":
-            raw = self.get_runtime_setting("bootstrap_scopes")
         if not raw:
             return frozenset()
         try:
@@ -169,12 +164,10 @@ class Store:
             return frozenset()
         return frozenset(str(x).strip().lower() for x in payload if str(x).strip())
 
-    def scope_bootstrap_complete(self, provider: str = "qbittorrent") -> bool:
+    def scope_bootstrap_complete(self, provider: str) -> bool:
         value = self.get_runtime_setting(
             self._scope_key(provider, "scope_bootstrap_complete")
         )
-        if value is None and provider == "qbittorrent":
-            value = self.get_runtime_setting("scope_bootstrap_complete")
         return value == "1"
 
     def clear_bootstrap_scopes(self, provider: str):
@@ -224,6 +217,9 @@ class Store:
             action_failures = db.execute(
                 "SELECT COUNT(*) FROM validations WHERE action_status='failed'"
             ).fetchone()[0]
+            limited_actions = db.execute(
+                "SELECT COUNT(*) FROM validations WHERE action_status='limited'"
+            ).fetchone()[0]
         counts = {k: v for k, v in rows}
         return {
             "total": sum(counts.values()),
@@ -231,4 +227,5 @@ class Store:
             "blocked": counts.get("blocked", 0),
             "enforced": enforced,
             "action_failures": action_failures,
+            "limited_actions": limited_actions,
         }
