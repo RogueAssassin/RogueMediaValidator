@@ -77,6 +77,10 @@
             data-provider="{{ provider.id }}"
             data-url="{{ provider.default_url }}"
             data-supported="{{ 'true' if provider.status == 'supported' else 'false' }}"
+            data-username-label="{{ provider.username_label }}"
+            data-password-label="{{ provider.password_label }}"
+            data-credential-hint="{{ provider.credential_hint }}"
+            data-delete-data="{{ 'true' if provider.supports_delete_data else 'false' }}"
             {% if provider.status != 'supported' %}disabled{% endif %}
           >
             <div class="provider-card-head">
@@ -85,6 +89,7 @@
             </div>
             <p>{{ provider.description }}</p>
             <small>RMV scope: {{ provider.scope_name }}</small>
+            <small>Payload cleanup: {{ 'full' if provider.supports_delete_data else 'torrent entry only' }}</small>
           </button>
           {% endfor %}
         </div>
@@ -106,13 +111,16 @@
             <small>Use the address RMV can reach from inside its container, normally the torrent service/container name on the shared network.</small>
           </label>
           <label class="field">
-            <span>Username</span>
+            <span id="username-label">Username</span>
             <input id="setup-username" type="text" autocomplete="username" placeholder="Optional">
           </label>
           <label class="field">
-            <span>Password</span>
+            <span id="password-label">Password</span>
             <input id="setup-password" type="password" autocomplete="current-password" placeholder="Optional">
           </label>
+          <div class="field full setup-credential-hint">
+            <small id="credential-hint">Choose a torrent client to see its authentication requirements.</small>
+          </div>
         </div>
 
         <div class="setup-actions">
@@ -147,6 +155,9 @@
       const username = document.getElementById('setup-username');
       const password = document.getElementById('setup-password');
       const selected = document.getElementById('selected-client');
+      const usernameLabel = document.getElementById('username-label');
+      const passwordLabel = document.getElementById('password-label');
+      const credentialHint = document.getElementById('credential-hint');
       const testButton = document.getElementById('test-button');
       const saveButton = document.getElementById('save-button');
       const result = document.getElementById('setup-result');
@@ -190,6 +201,11 @@
           provider = card.dataset.provider;
           selected.textContent = card.querySelector('strong').textContent;
           url.value = card.dataset.url || '';
+          usernameLabel.textContent = card.dataset.usernameLabel || 'Username';
+          passwordLabel.textContent = card.dataset.passwordLabel || 'Password';
+          credentialHint.textContent = card.dataset.credentialHint || '';
+          username.disabled = provider === 'aria2';
+          if (username.disabled) username.value = '';
           testButton.disabled = !url.value;
           markDirty();
           result.hidden = true;
@@ -231,9 +247,13 @@
           const data = await call('/api/setup/test');
           testedSignature = signature();
           const scopes = data.scopes?.length ? data.scopes.join(', ') : 'None currently discovered';
+          const cleanup = data.supports_delete_data
+            ? 'Blocked payload data can be removed through this client API.'
+            : 'This client API can remove the torrent entry but cannot guarantee local payload deletion.';
           show('success', 'Connection successful', [
             data.name + ' ' + data.version,
-            data.scope_name + ': ' + scopes
+            data.scope_name + ': ' + scopes,
+            cleanup
           ]);
           saveButton.disabled = false;
         } catch (error) {
