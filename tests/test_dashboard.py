@@ -3,32 +3,38 @@ from types import SimpleNamespace
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
-def test_dashboard_template_renders_with_runtime_context():
-    env = Environment(
+def template_env():
+    return Environment(
         loader=FileSystemLoader("app/templates"),
         autoescape=select_autoescape(["html", "xml"]),
     )
-    template = env.get_template("index.html")
+
+
+def test_dashboard_template_renders_with_generic_client_context():
+    template = template_env().get_template("index.html")
 
     settings = SimpleNamespace(
         dry_run=True,
         policy_fingerprint="abc123",
         poll_seconds=2,
-        qb_inspect_all_states=True,
-        qb_action_states="pausedDL,stoppedDL,downloading",
+        inspect_all_states=True,
+        action_states=frozenset({"pauseddl", "stoppeddl", "downloading"}),
     )
     health = {
         "status": "healthy",
-        "qbittorrent_connected": True,
-        "qbittorrent_version": "v5.2.3",
+        "torrent_client_connected": True,
+        "torrent_client_name": "Transmission",
+        "torrent_client_version": "4.1.1",
         "diagnostics": {
-            "torrents_seen": 1,
+            "client_display_name": "Transmission",
+            "torrents_seen": 2,
             "in_scope_torrents": 1,
-            "actionable_torrents": 0,
-            "managed_categories": ["radarr", "tv"],
-            "discovered_categories": ["manual", "radarr", "tv"],
-            "category_source": "auto_bootstrap",
-            "category_bootstrap_complete": True,
+            "actionable_torrents": 1,
+            "scope_name": "labels",
+            "managed_scopes": ["movies", "tv"],
+            "discovered_scopes": ["manual", "movies", "tv"],
+            "scope_source": "auto_bootstrap",
+            "scope_bootstrap_complete": True,
         },
     }
     stats = {
@@ -55,13 +61,59 @@ def test_dashboard_template_renders_with_runtime_context():
         health=health,
         stats=stats,
         recent=recent,
-        version="0.3.1",
+        version="0.4.0",
     )
 
     assert "RogueMediaValidator" in rendered
-    assert "Managed categories" in rendered
-    assert "radarr" in rendered
-    assert "tv" in rendered
+    assert "Transmission protection at a glance" in rendered
+    assert "Managed labels" in rendered
+    assert "movies" in rendered
     assert "manual" in rendered
     assert "Unsafe release.exe" in rendered
+    assert "Installation" in rendered
     assert "Diagnostics" in rendered
+
+
+def test_setup_template_lists_supported_and_planned_providers():
+    template = template_env().get_template("setup.html")
+    providers = [
+        {
+            "id": "qbittorrent",
+            "name": "qBittorrent",
+            "status": "supported",
+            "default_url": "http://qbittorrent:8080",
+            "scope_name": "Categories",
+            "description": "qBittorrent support",
+        },
+        {
+            "id": "transmission",
+            "name": "Transmission",
+            "status": "supported",
+            "default_url": "http://transmission:9091/transmission/rpc",
+            "scope_name": "Labels",
+            "description": "Transmission support",
+        },
+        {
+            "id": "deluge",
+            "name": "Deluge",
+            "status": "planned",
+            "default_url": "http://deluge:8112",
+            "scope_name": "Labels",
+            "description": "Coming later",
+        },
+    ]
+
+    rendered = template.render(
+        version="0.4.0",
+        providers=providers,
+        current=None,
+        configured=False,
+        locked=False,
+    )
+
+    assert "Connect your torrent client" in rendered
+    assert "qBittorrent" in rendered
+    assert "Transmission" in rendered
+    assert "Deluge" in rendered
+    assert "Save &amp; finish setup" not in rendered
+    assert "Save & finish setup" in rendered
