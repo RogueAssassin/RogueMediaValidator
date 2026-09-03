@@ -63,3 +63,64 @@ def test_inspect_all_states_can_be_disabled():
     cfg = Settings(_env_file=None, qb_categories="tv,movies", qb_inspect_all_states=False)
     torrent = {"category": "tv", "state": "uploading"}
     assert not torrent_should_inspect(torrent, cfg)
+
+
+def test_first_blank_install_bootstraps_discovered_categories(tmp_path):
+    from app.service import ValidationService
+    from app.store import Store
+
+    cfg = Settings(_env_file=None, qb_categories="", qb_auto_bootstrap_categories=True)
+    store = Store(tmp_path / "rmv.db")
+    service = ValidationService(cfg, store, qb=None)
+    service.discovered_categories = ["Movies", "tv", ""]
+
+    service._maybe_bootstrap_categories()
+
+    assert service.managed_categories == frozenset({"movies", "tv"})
+    assert service.category_source == "auto_bootstrap"
+    assert store.category_bootstrap_complete() is True
+    assert store.bootstrap_categories() == frozenset({"movies", "tv"})
+
+
+def test_new_categories_are_not_auto_added_after_first_bootstrap(tmp_path):
+    from app.service import ValidationService
+    from app.store import Store
+
+    cfg = Settings(_env_file=None, qb_categories="", qb_auto_bootstrap_categories=True)
+    store = Store(tmp_path / "rmv.db")
+    store.set_bootstrap_categories(["movies", "tv"])
+    service = ValidationService(cfg, store, qb=None)
+    service.discovered_categories = ["movies", "tv", "manual"]
+
+    service._maybe_bootstrap_categories()
+
+    assert service.managed_categories == frozenset({"movies", "tv"})
+    assert "manual" not in service.managed_categories
+
+
+def test_explicit_environment_categories_override_bootstrap(tmp_path):
+    from app.service import ValidationService
+    from app.store import Store
+
+    cfg = Settings(_env_file=None, qb_categories="anime")
+    store = Store(tmp_path / "rmv.db")
+    store.set_bootstrap_categories(["movies", "tv"])
+    service = ValidationService(cfg, store, qb=None)
+
+    assert service.managed_categories == frozenset({"anime"})
+    assert service.category_source == "environment"
+
+
+def test_auto_bootstrap_can_be_disabled(tmp_path):
+    from app.service import ValidationService
+    from app.store import Store
+
+    cfg = Settings(_env_file=None, qb_categories="", qb_auto_bootstrap_categories=False)
+    store = Store(tmp_path / "rmv.db")
+    service = ValidationService(cfg, store, qb=None)
+    service.discovered_categories = ["movies", "tv"]
+
+    service._maybe_bootstrap_categories()
+
+    assert service.managed_categories == frozenset()
+    assert store.category_bootstrap_complete() is False
