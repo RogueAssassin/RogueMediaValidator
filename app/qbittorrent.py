@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 
 
@@ -6,26 +8,34 @@ class QBittorrentClient:
         self.base_url = base_url.rstrip("/")
         self.username = username
         self.password = password
-        self.client = httpx.AsyncClient(timeout=15)
+        timeout = httpx.Timeout(15.0, connect=5.0)
+        transport = httpx.AsyncHTTPTransport(retries=2)
+        self.client = httpx.AsyncClient(
+            timeout=timeout,
+            transport=transport,
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+        )
         self._logged_in = False
+        self._login_lock = asyncio.Lock()
 
     async def close(self):
         await self.client.aclose()
 
     async def login(self, *, force: bool = False):
-        if self._logged_in and not force:
-            return
+        async with self._login_lock:
+            if self._logged_in and not force:
+                return
 
-        r = await self.client.post(
-            f"{self.base_url}/api/v2/auth/login",
-            data={"username": self.username, "password": self.password},
-        )
-        r.raise_for_status()
-        body = r.text.strip()
-        if body and body != "Ok.":
-            self._logged_in = False
-            raise RuntimeError("qBittorrent authentication failed")
-        self._logged_in = True
+            r = await self.client.post(
+                f"{self.base_url}/api/v2/auth/login",
+                data={"username": self.username, "password": self.password},
+            )
+            r.raise_for_status()
+            body = r.text.strip()
+            if body and body != "Ok.":
+                self._logged_in = False
+                raise RuntimeError("qBittorrent authentication failed")
+            self._logged_in = True
 
     async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
         await self.login()
@@ -40,6 +50,13 @@ class QBittorrentClient:
     async def app_version(self) -> str:
         r = await self._request("GET", "/api/v2/app/version")
         return r.text.strip() or "unknown"
+
+    async def categories(self) -> list[str]:
+        r = await self._request("GET", "/api/v2/torrents/categories")
+        payload = r.json()
+        if not isinstance(payload, dict):
+            raise RuntimeError("qBittorrent returned an invalid category response")
+        return sorted(str(name) for name in payload if str(name).strip())
 
     async def torrents(self) -> list[dict]:
         r = await self._request("GET", "/api/v2/torrents/info")
