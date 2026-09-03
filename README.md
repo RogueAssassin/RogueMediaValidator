@@ -8,12 +8,12 @@
     <td align="left">
       <h1>RogueMediaValidator</h1>
       <p><strong>Validate. Protect. Automate.</strong></p>
-      <p>Pre-download torrent payload validation for containerized media automation.</p>
+      <p>Multi-client pre-download torrent payload validation for Docker and Podman media stacks.</p>
     </td>
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.4.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.5.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-TESTING-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -22,13 +22,13 @@
 
 </div>
 
-RogueMediaValidator (RMV) is a lightweight safety gate for automated torrent downloads. It reads torrent file metadata from a supported torrent client, validates the payload before allowing automation to continue, records every decision in SQLite, and can optionally resume approved torrents or remove rejected ones.
+RogueMediaValidator (RMV) is a lightweight safety gate for automated torrent downloads. It reads torrent metadata from a supported torrent client, validates the declared payload before automation continues, stores every decision in SQLite, and can resume approved torrents or remove blocked torrents when enforcement is enabled.
 
-RMV is intentionally **torrent-client agnostic** from 0.4.0 onward. The validator core does not contain qBittorrent-specific logic; client adapters normalize each torrent application into the same internal model.
+The validation engine is provider-neutral. Every torrent application is isolated behind a small adapter that normalizes torrents, files, lifecycle states, validation scopes, resume operations, and removal operations into the same RMV model.
 
 ## Current testing release
 
-**v0.4.0-testing** introduces the multi-client architecture and guided Installation page.
+**v0.5.0-testing** completes the common headless/container torrent-client set and removes the old qBittorrent-specific compatibility layer from the testing architecture.
 
 Testing image:
 
@@ -36,65 +36,93 @@ Testing image:
 ghcr.io/rogueassassin/roguemediavalidator:testing
 ```
 
+Versioned testing tag:
+
+```text
+ghcr.io/rogueassassin/roguemediavalidator:0.5.0-testing
+```
+
 ## Supported torrent clients
 
-| Client | Status | RMV scope model | Notes |
-| --- | --- | --- | --- |
-| qBittorrent | Supported | Categories | Native Web API, existing 0.3.x settings remain compatible |
-| Transmission | Supported | Labels | Transmission 3.x/4.x RPC, modern JSON-RPC and legacy 4.0 protocol fallback |
-| Deluge | Planned | Labels | Adapter planned for a following 0.4.x release |
-| rTorrent / ruTorrent | Planned | Labels | Adapter planned after the setup workflow is proven |
+| Client | API | RMV scopes | Resume | Remove torrent | Remove payload data |
+| --- | --- | --- | --- | --- | --- |
+| qBittorrent | Web API | Categories | Yes | Yes | Yes |
+| Transmission | RPC | Labels | Yes | Yes | Yes |
+| Deluge | Web JSON-RPC | Label, otherwise download path | Yes | Yes | Yes |
+| rTorrent / ruTorrent | XML-RPC | custom1 label, otherwise download path | Yes | Yes | No |
+| aria2 | JSON-RPC | Download path | Yes | Yes | No |
 
-Support means RMV can perform the operations required by the validator:
+This is the practical container/headless torrent-client set RMV targets. Desktop-only clients without a stable remotely controllable API are not advertised as supported.
 
-- connect/authenticate;
-- read application version;
-- enumerate torrents;
-- discover categories or labels;
-- retrieve torrent file metadata;
-- normalize torrent lifecycle state;
-- start/resume an approved torrent;
-- remove a blocked torrent;
-- optionally remove blocked payload data.
+Flood is a management UI rather than a torrent engine; configure RMV against the torrent client Flood controls.
 
-## Installation experience
+## Why provider capabilities differ
 
-Fresh 0.4.0 installations no longer require the user to know qBittorrent-specific environment variables.
+Not every torrent API offers the same destructive operations.
 
-Start RMV and open:
+qBittorrent, Transmission, and Deluge expose API calls that can remove both the torrent and local payload data.
+
+The normal safe rTorrent XML-RPC and aria2 JSON-RPC paths can remove the torrent/task but do not provide a provider-neutral guarantee that the existing payload files are deleted.
+
+RMV never pretends otherwise. If:
+
+```env
+RMV_DELETE_REJECTED_DATA=true
+```
+
+and the selected provider cannot guarantee data deletion, RMV removes the torrent entry and records:
+
+```text
+action=delete
+action_status=limited
+action_error=<provider cannot delete local payload data through supported API>
+```
+
+The dashboard includes limited actions in **Action issues**, and diagnostics expose `supports_delete_data`.
+
+For strongest pre-download protection, have automation add new downloads paused/stopped so RMV can reject them before meaningful payload data exists.
+
+## First-run Installation
+
+A fresh instance has no torrent client selected.
+
+Open:
 
 ```text
 http://localhost:7811
 ```
 
-An unconfigured instance automatically redirects to:
+RMV redirects to:
 
 ```text
 /setup
 ```
 
-The setup flow is:
+The guided flow is:
 
 ```text
 1. Select torrent client
-        |
-        v
-2. Enter API endpoint / credentials
-        |
-        v
+2. Review provider-specific API URL and credential fields
 3. Test connection
-        |
-        v
-4. Discover categories / labels
-        |
-        v
-5. Persist provider configuration
-        |
-        v
-6. Start RMV dashboard in dry-run mode
+4. Read client version
+5. Discover categories / labels / download paths
+6. Confirm provider cleanup capability
+7. Save configuration
+8. Bootstrap the initial managed scopes
+9. Enter the dashboard in dry-run mode
 ```
 
-The setup page offers sensible container-network defaults:
+Setup locks after configuration. To intentionally reconfigure:
+
+```env
+RMV_SETUP_UNLOCK=true
+```
+
+recreate the container, make the change, then return the value to `false`.
+
+## Default provider endpoints
+
+These are container-network defaults and are editable in Installation:
 
 ```text
 qBittorrent
@@ -102,50 +130,136 @@ http://qbittorrent:8080
 
 Transmission
 http://transmission:9091/transmission/rpc
+
+Deluge
+http://deluge:8112/json
+
+rTorrent / ruTorrent
+http://rutorrent/RPC2
+
+aria2
+http://aria2:6800/jsonrpc
 ```
 
-These are examples, not hard requirements. Use whatever DNS/service name and internal port are reachable from the RMV container.
+The actual endpoint must be reachable **from inside the RMV container**.
 
-## Docker and Podman
+## Authentication notes
 
-RMV deliberately does **not** inspect Docker or Podman sockets.
+### qBittorrent
 
-It does not need:
+Use the qBittorrent Web UI username/password.
+
+### Transmission
+
+Use optional HTTP Basic authentication if enabled by the Transmission deployment.
+
+### Deluge
+
+The password field is the Deluge Web UI password. RMV logs in through Deluge Web and automatically connects to the first configured daemon host when the Web UI is not already connected.
+
+### rTorrent / ruTorrent
+
+Use HTTP Basic credentials only when the reverse proxy exposing `RPC2` requires them.
+
+RMV does not attempt direct SCGI socket mounting.
+
+### aria2
+
+Put the aria2 RPC secret in the **RPC secret** field. The username field is disabled.
+
+RMV sends it as the JSON-RPC `token:<secret>` authorization parameter.
+
+## Scope model
+
+RMV calls provider-specific categories/labels/paths **scopes**.
+
+Examples:
 
 ```text
-/var/run/docker.sock
-/run/user/.../podman/podman.sock
+qBittorrent
+category=tv
+        -> scopes=[tv]
+
+Transmission
+labels=[movies,4k]
+        -> scopes=[movies,4k]
+
+Deluge
+label=tv
+        -> scopes=[tv]
+
+Deluge without a label
+download_location=/downloads/tv
+        -> scopes=[/downloads/tv]
+
+rTorrent
+custom1=movies
+        -> scopes=[movies]
+
+rTorrent without custom1
+directory=/downloads/tv
+        -> scopes=[/downloads/tv]
+
+aria2
+dir=/downloads/movies
+        -> scopes=[/downloads/movies]
 ```
 
-and those sockets should not be mounted into RMV.
+A torrent with several scopes enters RMV scope when **any** normalized scope matches the managed set.
 
-Instead:
+## First-run scope bootstrap
 
-```text
-RMV
- |
- | shared private container network
- |
- +--> qBittorrent API
- |
- +--> Transmission RPC
+Default:
+
+```env
+RMV_TORRENT_SCOPES=
+RMV_TORRENT_AUTO_BOOTSTRAP_SCOPES=true
 ```
 
-This gives Docker and Podman the same deployment path and keeps RMV least-privileged.
+On the first successful non-empty discovery for a provider, RMV persists the discovered set and uses it as managed scope.
 
-RMV continues to ship one:
+Later scopes are discovered but are not silently enrolled.
+
+Bootstrap state is namespaced by provider, so qBittorrent categories cannot accidentally become Transmission labels or aria2 paths.
+
+Explicit environment configuration overrides the persisted set:
+
+```env
+RMV_TORRENT_SCOPES=tv,movies
+```
+
+Use:
+
+```env
+RMV_TORRENT_SCOPES=*
+```
+
+only when every non-empty scope for the selected provider should be managed.
+
+## One Compose file for Docker and Podman
+
+RMV ships one:
 
 ```text
 compose.yaml
 ```
 
-for both engines. The external torrent-client network is configurable:
+for both engines.
+
+External network:
 
 ```env
 RMV_NETWORK=media-net
 ```
 
-Set that to the existing Docker/Podman network shared with the torrent client; no YAML edit is required.
+Set this to the network shared with the torrent client.
+
+RMV does **not** mount Docker or Podman sockets and should never require:
+
+```text
+/var/run/docker.sock
+/run/user/.../podman/podman.sock
+```
 
 ## Quick install
 
@@ -155,7 +269,6 @@ cd /opt/media-server/roguemediavalidator
 
 curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
 curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
-
 chmod 600 .env
 ```
 
@@ -175,212 +288,50 @@ docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-Then browse to port 7811 and complete Installation.
+Then complete Installation at port 7811.
 
-## Fresh-install environment
+## Advanced environment-managed setup
 
-The default 0.4.0 environment intentionally leaves the torrent client blank:
-
-```env
-RMV_TORRENT_CLIENT=
-RMV_TORRENT_URL=
-RMV_TORRENT_USERNAME=
-RMV_TORRENT_PASSWORD=
-```
-
-That enables browser setup.
-
-Advanced users may skip the wizard by configuring a supported provider explicitly:
+Browser setup can be skipped:
 
 ```env
 RMV_TORRENT_CLIENT=qbittorrent
 RMV_TORRENT_URL=http://qbittorrent:8080
 RMV_TORRENT_USERNAME=admin
-RMV_TORRENT_PASSWORD=change-me
+RMV_TORRENT_PASSWORD=secret
 ```
 
-or:
-
-```env
-RMV_TORRENT_CLIENT=transmission
-RMV_TORRENT_URL=http://transmission:9091/transmission/rpc
-RMV_TORRENT_USERNAME=
-RMV_TORRENT_PASSWORD=
-```
-
-Environment configuration takes precedence over browser-persisted setup.
-
-## Existing qBittorrent upgrades
-
-Legacy 0.3.x variables remain supported:
-
-```env
-RMV_QB_URL=
-RMV_QB_USERNAME=
-RMV_QB_PASSWORD=
-RMV_QB_CATEGORIES=
-RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=
-RMV_QB_CATEGORY_REFRESH_SECONDS=
-RMV_QB_INSPECT_ALL_STATES=
-RMV_QB_ACTION_STATES=
-```
-
-An existing 0.3.x deployment therefore continues to start as qBittorrent without being forced into the Installation wizard.
-
-New deployments should use the generic `RMV_TORRENT_*` settings or browser setup.
-
-## Browser setup storage and lock
-
-Browser setup stores the selected provider, endpoint, username, and password in RMV's private SQLite-backed data volume.
-
-The password is never returned by diagnostics or setup-status responses.
-
-After a client has been configured, setup writes are locked by default.
-
-To intentionally reconfigure through the browser:
-
-```env
-RMV_SETUP_UNLOCK=true
-```
-
-then recreate the RMV container, make the configuration change, and return the value to:
-
-```env
-RMV_SETUP_UNLOCK=false
-```
-
-This prevents the normal dashboard from becoming an always-open credential-changing API.
-
-## Scope model
-
-Different torrent clients use different names for the same concept.
-
-qBittorrent:
+Supported provider IDs:
 
 ```text
-categories
+qbittorrent
+transmission
+deluge
+rtorrent
+aria2
 ```
 
-Transmission:
-
-```text
-labels
-```
-
-Internally RMV calls these **scopes**.
-
-The generic configuration is:
-
-```env
-RMV_TORRENT_SCOPES=
-RMV_TORRENT_AUTO_BOOTSTRAP_SCOPES=true
-```
-
-If scopes are blank, RMV performs the same safe one-time bootstrap introduced in 0.3.0:
-
-```text
-first successful discovery
-        |
-        v
-persist discovered scopes
-        |
-        v
-managed scopes
-```
-
-Later categories/labels are discovered but are not silently added to managed scope.
-
-Explicit environment scopes always override persisted bootstrap values.
-
-## qBittorrent behavior
-
-qBittorrent exposes categories directly through its Web API.
-
-A torrent with:
-
-```text
-category=tv
-```
-
-is normalized into:
-
-```text
-scopes=[tv]
-```
-
-The adapter continues to support qBittorrent v5 behavior used by the existing RMV test installation.
-
-## Transmission behavior
-
-Transmission uses torrent **labels** as RMV scopes.
-
-A Transmission torrent may have multiple labels:
-
-```text
-labels=[movies, 4k]
-```
-
-RMV considers the torrent in scope when **any** torrent label intersects the managed scope set.
-
-Transmission lifecycle states are normalized to the same RMV state names used by the validation service. Completed/seeding torrents remain inspection-only.
-
-The Transmission adapter supports CSRF session-ID handling and optional HTTP Basic authentication.
-
-## Validation policy
-
-Approved video extensions:
-
-```text
-mkv mp4 m4v avi ts m2ts webm mov
-```
-
-Approved support extensions:
-
-```text
-srt ass ssa sub idx nfo jpg jpeg png txt
-```
-
-Blocked extensions:
-
-```text
-exe scr com bat cmd msi msix ps1 psm1 vbs vbe js jse wsf wsh lnk pif cpl jar apk dll
-```
-
-Minimum largest video size:
-
-```env
-RMV_MIN_VIDEO_SIZE_MB=50
-```
-
-A torrent is blocked if it contains a blocked file type, contains no approved video file, contains an unapproved/unknown file type, or its largest video is below the configured minimum.
-
-The validation engine is shared by every torrent client adapter.
-
-## Important security boundary
-
-RMV validates **torrent metadata before download**.
-
-It can detect:
-
-- executable/script filenames;
-- unwanted extensions;
-- missing video payloads;
-- suspiciously small declared media;
-- unexpected file types.
-
-It cannot prove that bytes which have not downloaded yet genuinely contain valid video.
-
-Post-download MIME/signature/ffprobe validation remains a separate future layer.
+Environment configuration has precedence over browser-persisted provider configuration.
 
 ## Dry-run and enforcement
 
-The default remains:
+Default:
 
 ```env
 RMV_DRY_RUN=true
 ```
 
-Dry-run performs connection, discovery, validation, logging and audit recording but does not resume or remove torrents.
+Dry-run performs:
+
+- provider connection;
+- scope discovery;
+- torrent enumeration;
+- file-list validation;
+- audit persistence;
+- policy fingerprinting;
+- diagnostics.
+
+It does **not** resume or remove torrents.
 
 Enforcement controls:
 
@@ -390,49 +341,85 @@ RMV_REMOVE_REJECTED=true
 RMV_DELETE_REJECTED_DATA=true
 ```
 
-Actions remain restricted to normalized download-lifecycle states.
+Actions are restricted to normalized download-lifecycle states:
 
-Completed, seeding, or upload-only torrents are audit-only.
+```env
+RMV_TORRENT_ACTION_STATES=pausedDL,stoppedDL,downloading,stalledDL,metaDL,queuedDL,checkingDL,forcedDL,allocating,checkingResumeData,moving
+```
+
+Completed/seeding/upload-only torrents are inspection-only.
+
+## Default payload policy
+
+Approved video:
+
+```text
+mkv mp4 m4v avi ts m2ts webm mov
+```
+
+Approved support:
+
+```text
+srt ass ssa sub idx nfo jpg jpeg png txt
+```
+
+Blocked:
+
+```text
+exe scr com bat cmd msi msix ps1 psm1 vbs vbe js jse wsf wsh lnk pif cpl jar apk dll
+```
+
+Minimum largest video:
+
+```env
+RMV_MIN_VIDEO_SIZE_MB=50
+```
+
+A torrent is blocked when a blocked file is present, no approved video exists, an unknown/unapproved file type exists, or the largest video is below the configured threshold.
 
 ## Policy fingerprinting
 
-RMV calculates a policy fingerprint from:
+The active validation policy is fingerprinted from:
 
-- allowed video extensions;
-- allowed support extensions;
+- video extensions;
+- support extensions;
 - blocked extensions;
 - minimum video size.
 
-If the policy changes, existing torrent hashes are eligible for revalidation under the new policy.
+When those rules change, an existing torrent hash is eligible for revalidation under the new policy.
+
+## Persistence
+
+SQLite stores:
+
+- validation results;
+- enforcement outcome;
+- action errors;
+- limited-action warnings;
+- policy fingerprints;
+- provider configuration;
+- provider-specific managed scope bootstrap.
+
+Container recreation keeps this state.
+
+Do not use `compose down -v` unless intentionally deleting RMV setup/history.
 
 ## Dashboard
 
-The operational dashboard is intentionally simple.
+The dashboard focuses on:
 
-It shows:
-
-- torrent client and version;
-- connection state;
-- validation totals;
-- managed scopes;
-- discovered-but-unmanaged scopes;
-- torrent counts;
+- selected torrent client and version;
+- connectivity;
+- checked / approved / blocked totals;
+- failed and limited action counts;
+- managed and newly discovered scopes;
+- current provider data-deletion capability;
 - recent validation history;
-- action outcome;
-- policy/runtime technical details.
-
-The top bar includes:
-
-```text
-Installation
-Diagnostics
-```
-
-rather than fake navigation tabs.
+- policy/runtime details.
 
 ## API
 
-Read APIs:
+Read:
 
 ```text
 GET /api/health
@@ -442,36 +429,22 @@ GET /api/stats
 GET /api/setup/providers
 ```
 
-First-run setup APIs:
+First-run/reconfiguration:
 
 ```text
 POST /api/setup/test
 POST /api/setup/save
 ```
 
-Setup save locks after configuration unless `RMV_SETUP_UNLOCK=true`.
+The password/secret is never returned by diagnostics.
 
-Credentials are excluded from diagnostics.
+## Security boundary
 
-## Diagnostics
+RMV validates declared torrent metadata before download. It can detect dangerous filenames/extensions and malformed payload structure before downloading those files.
 
-`/api/diagnostics` now has a generic:
+RMV is not an antivirus engine and cannot prove that an undownloaded file named `movie.mkv` actually contains valid video bytes.
 
-```json
-"torrent_client": {
-  "provider": "qbittorrent",
-  "display_name": "qBittorrent",
-  "connected": true,
-  "version": "v5.2.3",
-  "scope_name": "categories",
-  "managed_scopes": ["radarr", "tv"],
-  "discovered_scopes": ["radarr", "tv"]
-}
-```
-
-A limited `qbittorrent` compatibility block remains temporarily for existing integrations.
-
-New integrations should consume `torrent_client`.
+Keep RMV and its selected torrent client on a trusted private network. Use HTTPS/authentication before exposing RMV beyond that boundary.
 
 ## Updating
 
@@ -490,7 +463,7 @@ docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-If `.env` changes, recreate the container:
+After changing `.env`, recreate:
 
 ```bash
 podman compose --env-file .env -f compose.yaml up -d --force-recreate
@@ -498,21 +471,19 @@ podman compose --env-file .env -f compose.yaml up -d --force-recreate
 
 or use the Docker equivalent.
 
-Do not use `down -v` unless RMV database/history/setup state is intentionally being deleted.
+## Next roadmap
 
-## 0.4.x roadmap
+With the provider layer complete, the next work moves above the client adapters:
 
-After the qBittorrent + Transmission base is proven:
-
-- Deluge adapter;
-- rTorrent/ruTorrent adapter;
 - authenticated administrative settings;
-- editable managed scopes from the UI;
-- provider-specific connection diagnostics;
-- structured per-file failure details;
-- optional quarantine workflows;
-- post-download media verification;
-- RogueDashboard integration.
+- UI-managed scope selection;
+- structured per-file reason detail;
+- quarantine workflows;
+- post-download ffprobe/signature validation;
+- Radarr/Sonarr failed-download feedback;
+- RogueDashboard integration;
+- notification/webhook events;
+- audit export/retention.
 
 ## Documentation
 
