@@ -11,9 +11,13 @@ from .validator import validate_payload
 log = logging.getLogger("rmv")
 
 
-def torrent_in_scope(torrent: dict, settings: Settings) -> bool:
+def torrent_in_scope(
+    torrent: dict,
+    settings: Settings,
+    managed_categories: frozenset[str] | None = None,
+) -> bool:
     category = str(torrent.get("category", "")).strip().lower()
-    categories = settings.categories
+    categories = settings.categories if managed_categories is None else managed_categories
     if not categories:
         return False
     if "*" in categories:
@@ -26,8 +30,12 @@ def torrent_actionable(torrent: dict, settings: Settings) -> bool:
     return bool(settings.action_states) and state in settings.action_states
 
 
-def torrent_should_inspect(torrent: dict, settings: Settings) -> bool:
-    if not torrent_in_scope(torrent, settings):
+def torrent_should_inspect(
+    torrent: dict,
+    settings: Settings,
+    managed_categories: frozenset[str] | None = None,
+) -> bool:
+    if not torrent_in_scope(torrent, settings, managed_categories):
         return False
     if settings.qb_inspect_all_states:
         return True
@@ -45,11 +53,29 @@ class ValidationService:
         self.last_success_at: str | None = None
         self.last_qb_version: str | None = None
         self.discovered_categories: list[str] = []
+        self.managed_categories: frozenset[str] = frozenset()
+        self.category_source = "none"
         self._category_refresh_monotonic = 0.0
         self.last_seen = 0
         self.last_in_scope = 0
         self.last_actionable = 0
         self.last_validated = 0
+        self._load_category_scope()
+
+    def _load_category_scope(self):
+        if self.settings.categories:
+            self.managed_categories = self.settings.categories
+            self.category_source = "environment"
+            return
+
+        persisted = self.store.bootstrap_categories()
+        if persisted:
+            self.managed_categories = persisted
+            self.category_source = "auto_bootstrap"
+            return
+
+        self.managed_categories = frozenset()
+        self.category_source = "none"
 
     async def refresh_categories(self, *, force: bool = False):
         refresh_after = max(15, self.settings.qb_category_refresh_seconds)
@@ -57,6 +83,30 @@ class ValidationService:
         if force or now - self._category_refresh_monotonic >= refresh_after:
             self.discovered_categories = await self.qb.categories()
             self._category_refresh_monotonic = now
+            self._maybe_bootstrap_categories()
+
+    def _maybe_bootstrap_categories(self):
+        if self.settings.categories:
+            return
+        if not self.settings.qb_auto_bootstrap_categories:
+            return
+        if self.store.category_bootstrap_complete():
+            return
+
+        discovered = sorted(
+            {x.strip().lower() for x in self.discovered_categories if x.strip()}
+        )
+        if not discovered:
+            return
+
+        self.store.set_bootstrap_categories(discovered)
+        self.managed_categories = frozenset(discovered)
+        self.category_source = "auto_bootstrap"
+        log.warning(
+            "First-run category bootstrap enabled. RMV automatically added discovered "
+            "qBittorrent categories to managed scope: %s",
+            ", ".join(discovered),
+        )
 
     async def run_once(self):
         if self.last_qb_version is None:
@@ -69,10 +119,9 @@ class ValidationService:
         self.last_actionable = 0
         self.last_validated = 0
 
-        if not self.settings.categories:
+        if not self.managed_categories:
             log.warning(
-                "No qBittorrent categories configured; RMV is fail-closed and will not inspect "
-                "or action torrents. Discovered categories: %s",
+                "No qBittorrent categories are managed. Discovered categories: %s",
                 ", ".join(self.discovered_categories) or "(none)",
             )
 
@@ -80,7 +129,11 @@ class ValidationService:
 
         for torrent in torrents:
             torrent_hash = str(torrent.get("hash", ""))
-            if not torrent_hash or not torrent_should_inspect(torrent, self.settings):
+            if not torrent_hash or not torrent_should_inspect(
+                torrent,
+                self.settings,
+                self.managed_categories,
+            ):
                 continue
 
             self.last_in_scope += 1
@@ -199,8 +252,12 @@ class ValidationService:
             "last_cycle_at": self.last_cycle_at,
             "last_success_at": self.last_success_at,
             "qbittorrent_version": self.last_qb_version,
-            "configured_categories": sorted(self.settings.categories),
+            "environment_categories": sorted(self.settings.categories),
+            "managed_categories": sorted(self.managed_categories),
             "discovered_categories": self.discovered_categories,
+            "category_source": self.category_source,
+            "category_bootstrap_complete": self.store.category_bootstrap_complete(),
+            "category_auto_bootstrap": self.settings.qb_auto_bootstrap_categories,
             "torrents_seen": self.last_seen,
             "in_scope_torrents": self.last_in_scope,
             "actionable_torrents": self.last_actionable,
