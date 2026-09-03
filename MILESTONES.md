@@ -2,50 +2,50 @@
 
 ## 0.1.x — Core validation and safe discovery
 
-- qBittorrent authentication and torrent metadata inspection
-- explicit qBittorrent category scoping
-- qBittorrent category discovery without automatic permission expansion
-- fail-closed behavior when no categories are configured
-- strict video/support allowlists
-- executable/script rejection
-- minimum video-size sanity check
-- dry-run and enforcement modes
-- SQLite audit history with WAL/busy-timeout hardening
-- responsive Rogue-style UI
-- Docker/Podman and GHCR CI
-- approved RMV branding
-- fixed internal application port 7811 with configurable host mapping
-- graceful shutdown and bounded qBittorrent connection behavior
+- qBittorrent metadata inspection ✅
+- strict payload allow/block policy ✅
+- dry-run and controlled enforcement ✅
+- SQLite audit history ✅
+- Docker/Podman container base ✅
 
 ## 0.2.x — Operational safety
 
-- policy fingerprint/version so policy changes trigger revalidation ✅
-- structured action outcomes and failure visibility ✅
-- one Docker/Podman Compose deployment ✅
-- structured reason codes and complete per-file decision detail
-- configurable quarantine behavior
-- API authentication before administrative/write APIs are introduced
-- policy editor with validation and test mode
-- richer runtime connection diagnostics
-- audit retention, export and backup controls
-- optional post-download media signature/ffprobe validation
+- policy fingerprint revalidation ✅
+- structured action outcomes/failure visibility ✅
+- one Docker/Podman `compose.yaml` ✅
+- SQLite WAL/busy timeout ✅
 
-## 0.3.x — Category automation and Arr integration
+## 0.3.x — Scope automation and dashboard
 
-- first-run qBittorrent category auto-bootstrap ✅
-- persisted managed-category source and diagnostics ✅
-- explicit environment override of auto-bootstrap ✅
-- no silent enrolment of categories added after bootstrap ✅
+- qBittorrent category discovery ✅
+- one-time first-run scope bootstrap ✅
+- persistent managed scope ✅
+- no silent permission expansion ✅
+- simplified operational dashboard ✅
+
+## 0.4.x — Multi-client platform
+
+- provider-neutral torrent client interface ✅
+- browser Installation/setup workflow ✅
+- qBittorrent adapter ✅
+- Transmission adapter ✅
+- provider-specific scope persistence ✅
+- setup connection test and post-install lock ✅
+- Deluge adapter
+- rTorrent / ruTorrent adapter
+- authenticated administrative configuration
+- UI-managed scope selection after bootstrap
+- structured per-file reason detail
+- configurable quarantine workflow
+- optional post-download ffprobe/signature validation
+
+## 0.5.x — Arr and Rogue ecosystem
+
 - optional Radarr/Sonarr failed-download feedback
-- automatic retry/blacklist workflow
-- source/indexer context where available
+- retry/blacklist workflow
+- source/indexer context
 - notification/webhook events
-- optional Arr-assisted category mapping while preserving qBittorrent as the enforcement source of truth
-
-## 0.4.x — Rogue ecosystem
-
-- native RogueDashboard health/status card
-- configured/discovered category visibility
-- recent validation and blocked-reason widgets
-- shared branding conventions and deployment helpers
-- stack-health integration without Docker/Podman socket access
+- native RogueDashboard status/health integration
+- recent validation widgets
+- shared deployment helpers
+- Uptime Kuma/RogueDashboard health integration without container socket access
