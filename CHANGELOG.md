@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.3.0 - testing
+
+First-run category automation stage.
+
+### Added
+
+- One-time automatic qBittorrent category bootstrap when `RMV_QB_CATEGORIES` is blank.
+- `RMV_QB_AUTO_BOOTSTRAP_CATEGORIES` setting, enabled by default.
+- Persistent managed category bootstrap state in SQLite `runtime_settings`.
+- Runtime diagnostics for environment, managed and discovered category sets.
+- Category source reporting: `environment`, `auto_bootstrap`, or `none`.
+- Regression tests covering first bootstrap, persistence, explicit overrides, disabled bootstrap and no silent enrolment of later categories.
+
+### Changed
+
+- The default `.env.example` now leaves `RMV_QB_CATEGORIES` blank so first-run discovery can configure scope automatically.
+- Explicit environment categories always override the persisted bootstrap set.
+- New qBittorrent categories discovered after initial bootstrap remain informational and are not silently added.
+- Testing image advances to `0.3.0-testing`.
+
+### Safety
+
+- Auto-bootstrap is one-time rather than continuous, preventing category permission creep.
+- Dry-run remains enabled by default, so first-run bootstrap does not itself cause resume/delete actions.
+
+
 ## 0.2.0 - testing
 
 Operational-safety hardening milestone.
