@@ -23,12 +23,13 @@
       <div class="topbar-actions">
         <span class="health-chip {{ health.status }}">
           <i></i>
-          {{ 'Connected' if health.qbittorrent_connected else health.status|title }}
+          {{ 'Connected' if health.torrent_client_connected else health.status|replace('_', ' ')|title }}
         </span>
         <span class="mode-chip {{ 'dry' if settings.dry_run else 'live' }}">
           {{ 'Dry run' if settings.dry_run else 'Enforcing' }}
         </span>
         <span class="version">v{{ version }}</span>
+        <a class="button secondary" href="/setup">Installation</a>
         <a class="button secondary" href="/api/diagnostics" target="_blank" rel="noopener">Diagnostics</a>
       </div>
     </header>
@@ -36,8 +37,8 @@
     <main>
       <section class="hero">
         <div>
-          <p class="eyebrow">Media validation</p>
-          <h1>qBittorrent protection at a glance</h1>
+          <p class="eyebrow">Torrent payload validation</p>
+          <h1>{{ health.torrent_client_name }} protection at a glance</h1>
           <p>RMV inspects in-scope torrent metadata, blocks unsafe payloads, and keeps enforcement limited to safe download states.</p>
         </div>
       </section>
@@ -69,15 +70,15 @@
         <article class="panel status-panel">
           <div class="panel-title">
             <div>
-              <span class="section-label">Connection</span>
-              <h2>qBittorrent</h2>
+              <span class="section-label">Torrent client</span>
+              <h2>{{ health.torrent_client_name }}</h2>
             </div>
-            <span class="state {{ 'ok' if health.qbittorrent_connected else 'warn' }}">
-              {{ 'Online' if health.qbittorrent_connected else health.status|title }}
+            <span class="state {{ 'ok' if health.torrent_client_connected else 'warn' }}">
+              {{ 'Online' if health.torrent_client_connected else health.status|replace('_', ' ')|title }}
             </span>
           </div>
           <dl class="facts">
-            <div><dt>Version</dt><dd>{{ health.qbittorrent_version or 'Connecting…' }}</dd></div>
+            <div><dt>Version</dt><dd>{{ health.torrent_client_version or 'Connecting…' }}</dd></div>
             <div><dt>Torrents seen</dt><dd>{{ health.diagnostics.torrents_seen }}</dd></div>
             <div><dt>In scope</dt><dd>{{ health.diagnostics.in_scope_torrents }}</dd></div>
             <div><dt>Actionable</dt><dd>{{ health.diagnostics.actionable_torrents }}</dd></div>
@@ -87,21 +88,21 @@
         <article class="panel categories-panel">
           <div class="panel-title">
             <div>
-              <span class="section-label">Scope</span>
-              <h2>Managed categories</h2>
+              <span class="section-label">Validation scope</span>
+              <h2>Managed {{ health.diagnostics.scope_name }}</h2>
             </div>
-            <span class="state neutral">{{ health.diagnostics.category_source | replace('_', ' ') | title }}</span>
+            <span class="state neutral">{{ health.diagnostics.scope_source | replace('_', ' ') | title }}</span>
           </div>
 
           <div class="category-list">
-            {% for category in health.diagnostics.managed_categories %}
-              <span class="category-chip"><i></i>{{ category }}</span>
+            {% for scope in health.diagnostics.managed_scopes %}
+              <span class="category-chip"><i></i>{{ scope }}</span>
             {% else %}
-              <span class="empty-inline">No managed categories</span>
+              <span class="empty-inline">No managed {{ health.diagnostics.scope_name }}</span>
             {% endfor %}
           </div>
 
-          {% set unmanaged = health.diagnostics.discovered_categories | reject('in', health.diagnostics.managed_categories) | list %}
+          {% set unmanaged = health.diagnostics.discovered_scopes | reject('in', health.diagnostics.managed_scopes) | list %}
           {% if unmanaged %}
           <div class="discovered-note">
             <span>Discovered but unmanaged</span>
@@ -126,7 +127,7 @@
               <tr>
                 <th>Status</th>
                 <th>Release</th>
-                <th>Category</th>
+                <th>Scope</th>
                 <th>Action</th>
                 <th>Result</th>
               </tr>
@@ -164,14 +165,16 @@
         </summary>
         <div class="technical-grid">
           <dl class="facts compact">
+            <div><dt>Provider</dt><dd>{{ health.diagnostics.client_display_name }}</dd></div>
             <div><dt>Policy fingerprint</dt><dd><code>{{ settings.policy_fingerprint }}</code></dd></div>
             <div><dt>Poll interval</dt><dd>{{ settings.poll_seconds }}s</dd></div>
-            <div><dt>Inspect states</dt><dd>{{ 'All states' if settings.qb_inspect_all_states else 'Action states only' }}</dd></div>
-            <div><dt>Category bootstrap</dt><dd>{{ 'Complete' if health.diagnostics.category_bootstrap_complete else 'Pending' }}</dd></div>
+            <div><dt>Inspect states</dt><dd>{{ 'All states' if settings.inspect_all_states else 'Action states only' }}</dd></div>
+            <div><dt>Scope bootstrap</dt><dd>{{ 'Complete' if health.diagnostics.scope_bootstrap_complete else 'Pending' }}</dd></div>
+            <div><dt>Scope type</dt><dd>{{ health.diagnostics.scope_name|title }}</dd></div>
           </dl>
           <div class="technical-copy">
             <span class="section-label">Action states</span>
-            <p>{{ settings.qb_action_states }}</p>
+            <p>{{ settings.action_states | join(', ') }}</p>
             <small>Completed, seeding and upload-only torrents are inspection-only and are not destructively actioned.</small>
           </div>
         </div>
