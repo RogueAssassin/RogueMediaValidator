@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from pathlib import Path
 
@@ -20,6 +21,7 @@ class Store:
         self.path = path
         try:
             with self._connect() as db:
+                db.execute("PRAGMA journal_mode=WAL")
                 db.execute("""
                     CREATE TABLE IF NOT EXISTS validations (
                         torrent_hash TEXT PRIMARY KEY,
@@ -31,17 +33,34 @@ class Store:
                         blocked_files INTEGER NOT NULL,
                         largest_video_bytes INTEGER NOT NULL,
                         checked_at TEXT NOT NULL,
-                        enforced INTEGER NOT NULL DEFAULT 0
+                        enforced INTEGER NOT NULL DEFAULT 0,
+                        policy_fingerprint TEXT NOT NULL DEFAULT '',
+                        action TEXT NOT NULL DEFAULT 'none',
+                        action_status TEXT NOT NULL DEFAULT 'audit',
+                        action_error TEXT
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS runtime_settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
                     )
                 """)
                 columns = {
                     row[1] for row in db.execute("PRAGMA table_info(validations)").fetchall()
                 }
-                if "enforced" not in columns:
-                    db.execute(
-                        "ALTER TABLE validations "
-                        "ADD COLUMN enforced INTEGER NOT NULL DEFAULT 0"
-                    )
+                migrations = {
+                    "enforced": "INTEGER NOT NULL DEFAULT 0",
+                    "policy_fingerprint": "TEXT NOT NULL DEFAULT ''",
+                    "action": "TEXT NOT NULL DEFAULT 'none'",
+                    "action_status": "TEXT NOT NULL DEFAULT 'audit'",
+                    "action_error": "TEXT",
+                }
+                for name, definition in migrations.items():
+                    if name not in columns:
+                        db.execute(
+                            f"ALTER TABLE validations ADD COLUMN {name} {definition}"
+                        )
         except sqlite3.OperationalError as exc:
             raise RuntimeError(
                 f"RMV cannot open SQLite database at {self.path}. "
@@ -49,30 +68,133 @@ class Store:
             ) from exc
 
     def _connect(self):
-        return sqlite3.connect(self.path)
+        db = sqlite3.connect(self.path, timeout=5)
+        db.execute("PRAGMA busy_timeout=5000")
+        db.execute("PRAGMA synchronous=NORMAL")
+        return db
 
-    def save(self, result: ValidationResult, *, enforced: bool = False):
+    def save(
+        self,
+        result: ValidationResult,
+        *,
+        policy_fingerprint: str,
+        enforced: bool = False,
+        action: str = "none",
+        action_status: str = "audit",
+        action_error: str | None = None,
+    ):
         data = result.as_dict()
-        data["enforced"] = int(enforced)
+        data.update(
+            {
+                "enforced": int(enforced),
+                "policy_fingerprint": policy_fingerprint,
+                "action": action,
+                "action_status": action_status,
+                "action_error": action_error,
+            }
+        )
         with self._connect() as db:
             db.execute("""
                 INSERT OR REPLACE INTO validations
                 (torrent_hash,torrent_name,category,status,reason,video_files,blocked_files,
-                 largest_video_bytes,checked_at,enforced)
+                 largest_video_bytes,checked_at,enforced,policy_fingerprint,action,
+                 action_status,action_error)
                 VALUES (:torrent_hash,:torrent_name,:category,:status,:reason,:video_files,
-                        :blocked_files,:largest_video_bytes,:checked_at,:enforced)
+                        :blocked_files,:largest_video_bytes,:checked_at,:enforced,
+                        :policy_fingerprint,:action,:action_status,:action_error)
             """, data)
 
-    def has(self, torrent_hash: str) -> bool:
+    def set_runtime_setting(self, key: str, value: str):
         with self._connect() as db:
-            return db.execute(
-                "SELECT 1 FROM validations WHERE torrent_hash=?", (torrent_hash,)
-            ).fetchone() is not None
+            db.execute(
+                """
+                INSERT INTO runtime_settings(key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value
+                """,
+                (key, value),
+            )
 
-    def has_enforced(self, torrent_hash: str) -> bool:
+    def get_runtime_setting(self, key: str) -> str | None:
         with self._connect() as db:
             row = db.execute(
-                "SELECT enforced FROM validations WHERE torrent_hash=?", (torrent_hash,)
+                "SELECT value FROM runtime_settings WHERE key=?",
+                (key,),
+            ).fetchone()
+        return str(row[0]) if row else None
+
+    def set_torrent_client_config(self, config: dict):
+        self.set_runtime_setting("torrent_client_config", json.dumps(config))
+
+    def torrent_client_config(self) -> dict | None:
+        raw = self.get_runtime_setting("torrent_client_config")
+        if not raw:
+            return None
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        return payload if isinstance(payload, dict) else None
+
+    @staticmethod
+    def _scope_key(provider: str, suffix: str) -> str:
+        provider = provider.strip().lower() or "default"
+        return f"{suffix}:{provider}"
+
+    def set_bootstrap_scopes(self, scopes: list[str], provider: str):
+        normalized = sorted({x.strip().lower() for x in scopes if x.strip()})
+        self.set_runtime_setting(
+            self._scope_key(provider, "bootstrap_scopes"),
+            json.dumps(normalized),
+        )
+        self.set_runtime_setting(
+            self._scope_key(provider, "scope_bootstrap_complete"),
+            "1",
+        )
+
+    def bootstrap_scopes(self, provider: str) -> frozenset[str]:
+        raw = self.get_runtime_setting(self._scope_key(provider, "bootstrap_scopes"))
+        if not raw:
+            return frozenset()
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return frozenset()
+        if not isinstance(payload, list):
+            return frozenset()
+        return frozenset(str(x).strip().lower() for x in payload if str(x).strip())
+
+    def scope_bootstrap_complete(self, provider: str) -> bool:
+        value = self.get_runtime_setting(
+            self._scope_key(provider, "scope_bootstrap_complete")
+        )
+        return value == "1"
+
+    def clear_bootstrap_scopes(self, provider: str):
+        keys = [
+            self._scope_key(provider, "bootstrap_scopes"),
+            self._scope_key(provider, "scope_bootstrap_complete"),
+        ]
+        with self._connect() as db:
+            db.executemany("DELETE FROM runtime_settings WHERE key=?", [(key,) for key in keys])
+
+    def has_current(self, torrent_hash: str, policy_fingerprint: str) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT 1 FROM validations WHERE torrent_hash=? AND policy_fingerprint=?",
+                (torrent_hash, policy_fingerprint),
+            ).fetchone()
+        return row is not None
+
+    def has_enforced_current(self, torrent_hash: str, policy_fingerprint: str) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                """
+                SELECT enforced
+                FROM validations
+                WHERE torrent_hash=? AND policy_fingerprint=?
+                """,
+                (torrent_hash, policy_fingerprint),
             ).fetchone()
         return bool(row and row[0])
 
@@ -92,10 +214,18 @@ class Store:
             enforced = db.execute(
                 "SELECT COUNT(*) FROM validations WHERE enforced=1"
             ).fetchone()[0]
+            action_failures = db.execute(
+                "SELECT COUNT(*) FROM validations WHERE action_status='failed'"
+            ).fetchone()[0]
+            limited_actions = db.execute(
+                "SELECT COUNT(*) FROM validations WHERE action_status='limited'"
+            ).fetchone()[0]
         counts = {k: v for k, v in rows}
         return {
             "total": sum(counts.values()),
             "approved": counts.get("approved", 0),
             "blocked": counts.get("blocked", 0),
             "enforced": enforced,
+            "action_failures": action_failures,
+            "limited_actions": limited_actions,
         }

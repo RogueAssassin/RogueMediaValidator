@@ -1,47 +1,189 @@
+import pytest
+
 from app.config import Settings
-from app.service import torrent_actionable, torrent_should_inspect
+from app.service import (
+    ValidationService,
+    torrent_actionable,
+    torrent_in_scope,
+    torrent_should_inspect,
+)
+from app.store import Store
 
 
 def settings():
-    return Settings(_env_file=None)
+    return Settings(_env_file=None, torrent_scopes="tv,movies")
 
 
-def test_paused_radarr_download_is_inspected_and_actionable():
-    torrent = {"category": "radarr", "state": "pausedDL"}
+def test_paused_movie_download_is_inspected_and_actionable():
+    torrent = {"_scopes": ["movies"], "state": "pausedDL"}
     assert torrent_should_inspect(torrent, settings())
     assert torrent_actionable(torrent, settings())
 
 
-def test_active_download_is_inspected_and_actionable():
-    torrent = {"category": "radarr", "state": "downloading"}
-    assert torrent_should_inspect(torrent, settings())
-    assert torrent_actionable(torrent, settings())
-
-
-def test_stalled_download_is_inspected_and_actionable():
-    torrent = {"category": "sonarr", "state": "stalledDL"}
+def test_active_tv_download_is_inspected_and_actionable():
+    torrent = {"_scopes": ["tv"], "state": "downloading"}
     assert torrent_should_inspect(torrent, settings())
     assert torrent_actionable(torrent, settings())
 
 
 def test_seeding_torrent_is_inspected_but_not_actionable():
-    torrent = {"category": "sonarr", "state": "uploading"}
+    torrent = {"_scopes": ["tv"], "state": "uploading"}
     assert torrent_should_inspect(torrent, settings())
     assert not torrent_actionable(torrent, settings())
 
 
-def test_completed_stopped_upload_is_inspected_but_not_actionable():
-    torrent = {"category": "radarr", "state": "stoppedUP"}
-    assert torrent_should_inspect(torrent, settings())
-    assert not torrent_actionable(torrent, settings())
-
-
-def test_unmanaged_category_is_never_inspected():
-    torrent = {"category": "manual", "state": "pausedDL"}
+def test_unmanaged_scope_is_never_inspected():
+    torrent = {"_scopes": ["manual"], "state": "pausedDL"}
     assert not torrent_should_inspect(torrent, settings())
 
 
+def test_empty_scopes_fail_closed():
+    cfg = Settings(_env_file=None, torrent_scopes="")
+    assert not torrent_in_scope({"_scopes": ["movies"], "state": "pausedDL"}, cfg)
+
+
+def test_explicit_wildcard_scopes_non_empty_scope():
+    cfg = Settings(_env_file=None, torrent_scopes="*")
+    assert torrent_in_scope({"_scopes": ["movies"]}, cfg)
+    assert torrent_in_scope({"_scopes": ["manual"]}, cfg)
+    assert not torrent_in_scope({"_scopes": []}, cfg)
+
+
+def test_scope_matching_is_case_insensitive():
+    cfg = Settings(_env_file=None, torrent_scopes="TV,Movies")
+    assert torrent_in_scope({"_scopes": ["tv"]}, cfg)
+    assert torrent_in_scope({"_scopes": ["MOVIES"]}, cfg)
+
+
+def test_multi_scope_torrent_matches_any_managed_scope():
+    cfg = Settings(_env_file=None, torrent_scopes="tv")
+    torrent = {"_scopes": ["archive", "TV"], "state": "downloading"}
+    assert torrent_in_scope(torrent, cfg)
+
+
 def test_inspect_all_states_can_be_disabled():
-    cfg = Settings(_env_file=None, qb_inspect_all_states=False)
-    torrent = {"category": "radarr", "state": "uploading"}
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv,movies",
+        torrent_inspect_all_states=False,
+    )
+    torrent = {"_scopes": ["tv"], "state": "uploading"}
     assert not torrent_should_inspect(torrent, cfg)
+
+
+def test_first_blank_install_bootstraps_discovered_scopes(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="", torrent_auto_bootstrap_scopes=True)
+    store = Store(tmp_path / "rmv.db")
+    service = ValidationService(cfg, store, client=None, client_name="qbittorrent")
+    service.discovered_scopes = ["Movies", "tv", ""]
+
+    service._maybe_bootstrap_scopes()
+
+    assert service.managed_scopes == frozenset({"movies", "tv"})
+    assert service.scope_source == "auto_bootstrap"
+    assert store.scope_bootstrap_complete("qbittorrent") is True
+    assert store.bootstrap_scopes("qbittorrent") == frozenset({"movies", "tv"})
+
+
+def test_new_scopes_are_not_auto_added_after_first_bootstrap(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="", torrent_auto_bootstrap_scopes=True)
+    store = Store(tmp_path / "rmv.db")
+    store.set_bootstrap_scopes(["movies", "tv"], "transmission")
+    service = ValidationService(cfg, store, client=None, client_name="transmission")
+    service.discovered_scopes = ["movies", "tv", "manual"]
+
+    service._maybe_bootstrap_scopes()
+
+    assert service.managed_scopes == frozenset({"movies", "tv"})
+    assert "manual" not in service.managed_scopes
+
+
+def test_explicit_environment_scopes_override_bootstrap(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="anime")
+    store = Store(tmp_path / "rmv.db")
+    store.set_bootstrap_scopes(["movies", "tv"], "transmission")
+    service = ValidationService(cfg, store, client=None, client_name="transmission")
+
+    assert service.managed_scopes == frozenset({"anime"})
+    assert service.scope_source == "environment"
+
+
+def test_auto_bootstrap_can_be_disabled(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="", torrent_auto_bootstrap_scopes=False)
+    store = Store(tmp_path / "rmv.db")
+    service = ValidationService(cfg, store, client=None, client_name="transmission")
+    service.discovered_scopes = ["movies", "tv"]
+
+    service._maybe_bootstrap_scopes()
+
+    assert service.managed_scopes == frozenset()
+    assert store.scope_bootstrap_complete("transmission") is False
+
+
+def test_provider_bootstrap_scopes_are_isolated(tmp_path):
+    store = Store(tmp_path / "rmv.db")
+    store.set_bootstrap_scopes(["tv"], "qbittorrent")
+    store.set_bootstrap_scopes(["movies"], "transmission")
+
+    assert store.bootstrap_scopes("qbittorrent") == frozenset({"tv"})
+    assert store.bootstrap_scopes("transmission") == frozenset({"movies"})
+
+
+class LimitedDeleteClient:
+    provider_id = "rtorrent"
+    display_name = "rTorrent / ruTorrent"
+    scope_name = "labels / download paths"
+    supports_delete_data = False
+
+    def __init__(self):
+        self.deleted = []
+
+    async def close(self):
+        return None
+
+    async def version(self):
+        return "0.9.8"
+
+    async def scopes(self):
+        return ["tv"]
+
+    async def torrents(self):
+        return [
+            {
+                "hash": "bad",
+                "name": "Unsafe.exe",
+                "_scopes": ["tv"],
+                "state": "stoppeddl",
+            }
+        ]
+
+    async def files(self, torrent_hash):
+        return [{"name": "Unsafe.exe", "size": 1000}]
+
+    async def resume(self, torrent_hash):
+        raise AssertionError("blocked torrent should not resume")
+
+    async def delete(self, torrent_hash, delete_files):
+        self.deleted.append((torrent_hash, delete_files))
+
+
+@pytest.mark.asyncio
+async def test_provider_without_data_delete_records_limited_action(tmp_path):
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv",
+        dry_run=False,
+        delete_rejected_data=True,
+    )
+    store = Store(tmp_path / "rmv.db")
+    client = LimitedDeleteClient()
+    service = ValidationService(cfg, store, client, "rtorrent")
+
+    await service.run_once()
+
+    assert client.deleted == [("bad", False)]
+    row = store.recent(1)[0]
+    assert row["enforced"] == 1
+    assert row["action"] == "delete"
+    assert row["action_status"] == "limited"
+    assert "cannot delete local payload data" in row["action_error"]

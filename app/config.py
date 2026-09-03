@@ -1,3 +1,5 @@
+import hashlib
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,13 +16,17 @@ class Settings(BaseSettings):
     poll_seconds: int = 2
     dry_run: bool = True
     log_level: str = "INFO"
+    setup_unlock: bool = False
 
-    qb_url: str = "http://qbittorrent:8080"
-    qb_username: str = ""
-    qb_password: str = ""
-    qb_categories: str = "radarr,sonarr"
-    qb_inspect_all_states: bool = True
-    qb_action_states: str = (
+    torrent_client: str = ""
+    torrent_url: str = ""
+    torrent_username: str = ""
+    torrent_password: str = ""
+    torrent_scopes: str = ""
+    torrent_auto_bootstrap_scopes: bool = True
+    torrent_inspect_all_states: bool = True
+    torrent_scope_refresh_seconds: int = 60
+    torrent_action_states: str = (
         "pausedDL,stoppedDL,downloading,stalledDL,metaDL,queuedDL,"
         "checkingDL,forcedDL,allocating,checkingResumeData,moving"
     )
@@ -52,12 +58,23 @@ class Settings(BaseSettings):
         return self._csv(self.blocked_extensions)
 
     @property
-    def categories(self) -> frozenset[str]:
-        return self._csv(self.qb_categories)
+    def scopes(self) -> frozenset[str]:
+        return self._csv(self.torrent_scopes)
 
     @property
     def action_states(self) -> frozenset[str]:
-        return self._csv(self.qb_action_states)
+        return self._csv(self.torrent_action_states)
+
+    @property
+    def policy_fingerprint(self) -> str:
+        policy = {
+            "video_extensions": sorted(self.video_exts),
+            "support_extensions": sorted(self.support_exts),
+            "blocked_extensions": sorted(self.blocked_exts),
+            "min_video_size_mb": self.min_video_size_mb,
+        }
+        encoded = json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()
+        return hashlib.sha256(encoded).hexdigest()[:16]
 
 
 @lru_cache

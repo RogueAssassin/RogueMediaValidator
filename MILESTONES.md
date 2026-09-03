@@ -2,37 +2,56 @@
 
 ## 0.1.x — Core validation
 
-- qBittorrent authentication and torrent metadata inspection
-- Radarr/Sonarr category scoping
-- strict video/support allowlists
-- executable/script rejection
-- minimum video-size sanity check
-- dry-run and enforcement modes
-- SQLite audit history
-- responsive Rogue-style UI
-- Docker/Podman and GHCR CI
-- approved RMV branding
-- fixed internal application port 7811 with configurable host mapping
+- strict payload validator ✅
+- qBittorrent first integration ✅
+- dry-run/enforcement ✅
+- SQLite audit ✅
 
 ## 0.2.x — Operational safety
 
-- richer reason codes and per-file decision detail
-- safer retry/idempotency handling
-- configurable quarantine behavior
-- API authentication for administrative operations
-- policy editor with validation and test mode
-- runtime connection diagnostics
+- policy fingerprints ✅
+- structured action outcomes ✅
+- single Docker/Podman Compose ✅
+- SQLite hardening ✅
 
-## 0.3.x — Arr integration
+## 0.3.x — Scope automation and dashboard
+
+- scope discovery/bootstrap ✅
+- persisted scope isolation ✅
+- simplified dashboard ✅
+
+## 0.4.x — Multi-client foundation
+
+- provider interface ✅
+- browser Installation ✅
+- qBittorrent ✅
+- Transmission ✅
+- setup test/lock ✅
+
+## 0.5.x — Complete headless torrent-provider set
+
+- Deluge ✅
+- rTorrent / ruTorrent ✅
+- aria2 ✅
+- provider capability reporting ✅
+- limited-delete auditing ✅
+- removal of legacy qBittorrent compatibility code ✅
+- all-provider CI regression tests ✅
+
+### Remaining 0.5.x
+
+- authenticated admin configuration
+- UI-managed scope selection
+- structured per-file reasons
+- quarantine workflow
+- post-download ffprobe/signature validation
+
+## 0.6.x — Arr and Rogue ecosystem
 
 - Radarr/Sonarr failed-download feedback
-- automatic retry/blacklist workflow
-- source/indexer context where available
+- retry/blacklist workflow
+- source/indexer context
 - notification/webhook events
-
-## 0.4.x — Rogue ecosystem
-
-- native RogueDashboard health/status card
-- recent validation and blocked-reason widgets
-- shared branding conventions and deployment helpers
-- stack-health integration without Docker/Podman socket access
+- RogueDashboard integration
+- Uptime Kuma/RogueDashboard health integration
+- audit export/retention
