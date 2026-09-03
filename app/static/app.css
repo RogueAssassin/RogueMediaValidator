@@ -172,3 +172,92 @@ code{
   th,td{padding-inline:15px}
   .discovered-note{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Setup / Installation */
+.setup-main{width:min(1180px,100%);padding-top:34px}
+.setup-hero{margin-bottom:20px}
+.setup-hero h1{margin:0;font-size:clamp(28px,4vw,40px);letter-spacing:-.04em}
+.setup-hero p:last-child{max-width:760px;color:var(--muted);margin:8px 0 0}
+.setup-steps{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;
+}
+.setup-step{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line-soft);
+  border-radius:11px;background:rgba(10,15,23,.72);color:var(--muted);
+}
+.setup-step>span{
+  display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--line);font-weight:750;color:var(--muted2);
+}
+.setup-step div{display:grid}
+.setup-step strong{font-size:12px;color:var(--muted2)}
+.setup-step small{font-size:10px;color:var(--muted)}
+.setup-step.active{border-color:rgba(139,92,246,.34);background:rgba(109,54,207,.10)}
+.setup-step.active>span{border-color:rgba(139,92,246,.4);background:rgba(109,54,207,.22);color:#d8cbff}
+.setup-panel{margin-bottom:12px}
+.provider-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.provider-card{
+  appearance:none;text-align:left;border:1px solid var(--line);border-radius:12px;padding:15px;
+  background:var(--surface);color:var(--text);cursor:pointer;transition:.16s ease;
+}
+.provider-card:hover:not(:disabled){border-color:#3f5270;background:var(--panel-hi);transform:translateY(-1px)}
+.provider-card.selected{
+  border-color:rgba(139,92,246,.7);
+  background:linear-gradient(180deg,rgba(109,54,207,.20),rgba(12,18,27,.96));
+  box-shadow:0 0 0 1px rgba(139,92,246,.12) inset,0 10px 28px rgba(0,0,0,.18);
+}
+.provider-card.disabled{opacity:.5;cursor:not-allowed}
+.provider-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.provider-card-head strong{font-size:15px}
+.provider-card p{margin:8px 0;color:var(--muted2);font-size:12px}
+.provider-card small{color:var(--muted)}
+.provider-badge{
+  border:1px solid var(--line);border-radius:999px;padding:3px 7px;
+  font-size:9px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;
+}
+.provider-badge.supported{color:#86e8b0;border-color:rgba(53,208,127,.28);background:rgba(23,61,43,.35)}
+.provider-badge.planned{color:#aab5c6}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:grid;gap:6px}
+.field.full{grid-column:1/-1}
+.field>span{font-size:12px;font-weight:700;color:#d5deeb}
+.field input{
+  width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;
+  background:#080d14;color:var(--text);font:inherit;outline:none;
+}
+.field input:focus{border-color:#5b4da0;box-shadow:0 0 0 3px rgba(139,92,246,.09)}
+.field small{color:var(--muted);font-size:11px}
+.setup-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}
+button.button{border:0;font:inherit;cursor:pointer}
+.button.primary{
+  background:linear-gradient(180deg,#8055df,#6936c7);color:white;border:1px solid #8b63e5;
+}
+.button.primary:hover:not(:disabled){filter:brightness(1.06)}
+.button:disabled{opacity:.45;cursor:not-allowed}
+.setup-result{
+  margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 13px;
+  display:grid;gap:3px;background:var(--surface);
+}
+.setup-result strong{font-size:12px}
+.setup-result span{font-size:11px;color:var(--muted2)}
+.setup-result.success{border-color:rgba(53,208,127,.28);background:rgba(23,61,43,.24)}
+.setup-result.success strong{color:#80e7ad}
+.setup-result.error{border-color:rgba(255,95,109,.3);background:rgba(68,32,40,.28)}
+.setup-result.error strong{color:#ff929b}
+.setup-result.working strong{color:#d8cbff}
+.setup-help{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.setup-help h2{margin:0 0 6px;font-size:15px}
+.setup-help p{margin:0;color:var(--muted);font-size:12px}
+.setup-locked p{max-width:760px;color:var(--muted2)}
+.setup-current{margin-top:14px}
+.setup-note{
+  margin-top:14px;padding:12px;border:1px solid var(--line-soft);border-radius:9px;
+  background:#080d14;color:var(--muted2);font-size:12px;
+}
+
+@media(max-width:760px){
+  .setup-steps{grid-template-columns:1fr 1fr}
+  .provider-grid,.setup-help,.form-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+}
