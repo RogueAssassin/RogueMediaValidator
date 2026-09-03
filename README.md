@@ -139,7 +139,13 @@ RMV continues to ship one:
 compose.yaml
 ```
 
-for both engines.
+for both engines. The external torrent-client network is configurable:
+
+```env
+RMV_NETWORK=media-net
+```
+
+Set that to the existing Docker/Podman network shared with the torrent client; no YAML edit is required.
 
 ## Quick install
 
