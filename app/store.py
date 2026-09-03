@@ -177,6 +177,14 @@ class Store:
             value = self.get_runtime_setting("category_bootstrap_complete")
         return value == "1"
 
+    def clear_bootstrap_categories(self, provider: str):
+        keys = [
+            self._scope_key(provider, "bootstrap_scopes"),
+            self._scope_key(provider, "scope_bootstrap_complete"),
+        ]
+        with self._connect() as db:
+            db.executemany("DELETE FROM runtime_settings WHERE key=?", [(key,) for key in keys])
+
     def has_current(self, torrent_hash: str, policy_fingerprint: str) -> bool:
         with self._connect() as db:
             row = db.execute(
