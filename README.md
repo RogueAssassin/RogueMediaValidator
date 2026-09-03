@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.2.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.3.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-TESTING-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -25,11 +25,11 @@
 
 RogueMediaValidator (RMV) is a lightweight safety gate for qBittorrent-based media automation. It examines the torrent file list exposed by qBittorrent before an automated download is allowed to continue, applies a strict payload policy, records every decision in SQLite, and can optionally resume approved downloads or remove rejected ones.
 
-RMV is intentionally independent of Radarr and Sonarr APIs in the current release. It scopes work by **qBittorrent categories**, so your category names do not need to be `radarr` and `sonarr`. If your download client uses `tv` and `movies`, configure exactly those names.
+RMV is intentionally independent of Radarr and Sonarr APIs in the current release. It scopes work by **qBittorrent categories**. On a fresh 0.3.0 install you may leave the category list blank and let RMV bootstrap the categories qBittorrent already has configured.
 
 ## Current testing release
 
-**v0.2.0-testing** is the first operational-safety milestone. It keeps the proven category-discovery/fail-closed model and adds policy-aware revalidation, structured action outcomes, and a single Docker/Podman Compose deployment.
+**v0.3.0-testing** adds first-run category automation on top of the 0.2.0 operational-safety foundation. A blank category configuration can now discover qBittorrent's existing categories, persist that initial set in SQLite, and immediately use it as RMV's managed scope.
 
 Testing image:
 
@@ -74,62 +74,128 @@ RMV cannot inspect the actual bytes of a file that has not downloaded yet. It ca
 
 RMV scopes torrents using the category reported by qBittorrent.
 
-For the RogueGaming media stack:
+### 0.3.0 first-run auto-bootstrap
+
+The default configuration is now:
+
+```env
+RMV_QB_CATEGORIES=
+RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=true
+```
+
+On a fresh RMV data volume, the first successful qBittorrent category discovery behaves like this:
+
+```text
+qBittorrent categories
+        |
+        +-- movies
+        +-- tv
+        |
+        v
+RMV discovers initial set
+        |
+        v
+persist in /data/rmv.db
+        |
+        v
+managed categories = movies,tv
+```
+
+This happens only when all of the following are true:
+
+- `RMV_QB_CATEGORIES` is blank;
+- `RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=true`;
+- RMV has not completed category bootstrap before;
+- qBittorrent returns at least one non-empty category.
+
+The initial discovered set is normalized, persisted in SQLite, and used immediately. The `.env` file itself is **not modified** from inside the container.
+
+### New categories are not silently enrolled later
+
+The bootstrap is intentionally one-time. If qBittorrent later contains:
+
+```text
+movies
+tv
+manual
+```
+
+but the persisted bootstrap set is:
+
+```text
+movies
+tv
+```
+
+then `manual` appears under discovered categories but stays outside managed scope.
+
+This avoids permission creep after installation.
+
+### Explicit environment categories always win
+
+You can bypass or override the persisted bootstrap set at any time:
 
 ```env
 RMV_QB_CATEGORIES=tv,movies
 ```
 
+or another explicit set.
+
 Category matching is case-insensitive.
 
-### Fail-closed behavior
-
-An empty category list means **manage nothing**:
-
-```env
-RMV_QB_CATEGORIES=
-```
-
-This is deliberate. A missing environment variable must never silently expand RMV to every torrent.
-
-To intentionally include every non-empty qBittorrent category:
+To intentionally manage every current and future non-empty qBittorrent category:
 
 ```env
 RMV_QB_CATEGORIES=*
 ```
 
-Using `*` is not recommended for normal media automation because manual/non-media categories may then be inspected or actioned.
+Use `*` only when that broad scope is genuinely intended.
 
-## Automatic category discovery
+To disable automatic first-run bootstrap while leaving the list blank:
 
-RMV retrieves qBittorrent's configured categories from:
+```env
+RMV_QB_CATEGORIES=
+RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=false
+```
+
+That restores fail-closed blank-scope behavior.
+
+## Automatic category discovery and diagnostics
+
+RMV retrieves qBittorrent categories from:
 
 ```text
 /api/v2/torrents/categories
 ```
 
-Discovery does **not** automatically grant enforcement scope. It tells you what qBittorrent has configured so you can explicitly choose the categories RMV is allowed to manage.
-
-After RMV has connected, inspect:
+Inspect the runtime category state with:
 
 ```bash
 curl -s http://127.0.0.1:7811/api/diagnostics | python3 -m json.tool
 ```
 
-Look for:
+A bootstrapped installation should report values similar to:
 
 ```json
-"configured_categories": [
+"environment_categories": [],
+"managed_categories": [
   "movies",
   "tv"
 ],
 "discovered_categories": [
   "movies",
   "tv"
-]
+],
+"category_source": "auto_bootstrap",
+"category_auto_bootstrap": true,
+"category_bootstrap_complete": true
 ```
 
-If qBittorrent contains additional categories, they will appear under `discovered_categories` but will remain out of scope unless added to `RMV_QB_CATEGORIES`.
+Possible `category_source` values are:
+
+- `environment` — explicit `RMV_QB_CATEGORIES` is controlling scope;
+- `auto_bootstrap` — the persisted first-run discovered set is controlling scope;
+- `none` — no category scope is currently available.
 
 The discovery cache refresh interval is controlled by:
 
@@ -138,7 +204,6 @@ RMV_QB_CATEGORY_REFRESH_SECONDS=60
 ```
 
 The application enforces a minimum effective refresh interval of 15 seconds.
-
 
 ## 0.2.0 policy-aware revalidation
 
@@ -343,7 +408,8 @@ Set at minimum:
 RMV_QB_URL=http://qbittorrent:8080
 RMV_QB_USERNAME=YOUR_USERNAME
 RMV_QB_PASSWORD=YOUR_PASSWORD
-RMV_QB_CATEGORIES=tv,movies
+RMV_QB_CATEGORIES=
+RMV_QB_AUTO_BOOTSTRAP_CATEGORIES=true
 RMV_DRY_RUN=true
 ```
 
@@ -528,9 +594,7 @@ Check:
 curl -s http://127.0.0.1:7811/api/diagnostics | python3 -m json.tool
 ```
 
-Compare `configured_categories` with `discovered_categories`.
-
-A blank `RMV_QB_CATEGORIES` is intentionally fail-closed.
+Compare `managed_categories`, `discovered_categories`, `category_source`, and `category_bootstrap_complete`. On a fresh default 0.3.0 install, a blank `RMV_QB_CATEGORIES` should bootstrap the first non-empty discovered set. If auto-bootstrap is disabled, blank scope remains fail-closed.
 
 ### qBittorrent connection fails
 
@@ -548,9 +612,9 @@ Read the validation reason in the dashboard or `/api/validations`. Common causes
 
 Do not simply add broad executable/archive extensions to the support allowlist. Adjust policy narrowly.
 
-### RMV sees categories but ignores one
+### RMV discovers a new category but does not manage it
 
-Discovery and permission are separate by design. Add the category explicitly to `RMV_QB_CATEGORIES`.
+That is intentional after first-run bootstrap. New categories are discovered but are not automatically added to the persisted managed set. Add the category explicitly with `RMV_QB_CATEGORIES`, or use `*` only if all current/future non-empty categories should be managed.
 
 ## Recommended live-testing sequence
 
@@ -582,14 +646,14 @@ The publish workflow builds Linux `amd64` and `arm64` images and publishes prove
 Channels:
 
 ```text
-testing branch -> :testing and :0.2.0-testing
+testing branch -> :testing and :0.3.0-testing
 main branch    -> :latest and the current stable version tag
 git tag v*     -> matching tag metadata
 ```
 
 ## Current hardening priorities
 
-The 0.1.x line established the safe validation gate. 0.2.0 now adds policy fingerprints and structured action outcomes. Remaining 0.2.x hardening includes:
+0.3.0 adds persisted first-run category bootstrap on top of the 0.2.0 policy/action hardening. Remaining hardening includes:
 
 - structured reason codes and complete per-file decision detail;
 - optional quarantine workflows;
