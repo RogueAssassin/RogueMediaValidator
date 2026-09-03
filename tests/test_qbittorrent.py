@@ -64,3 +64,24 @@ async def test_expired_session_reauthenticates_once():
     assert await client.torrents() == []
     assert calls == {"login": 2, "torrents": 2}
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_categories_are_discovered_from_qbittorrent():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v2/auth/login":
+            return httpx.Response(200, text="Ok.", request=request)
+        if request.url.path == "/api/v2/torrents/categories":
+            return httpx.Response(
+                200,
+                json={
+                    "movies": {"savePath": "/downloads/movies"},
+                    "tv": {"savePath": "/downloads/tv"},
+                },
+                request=request,
+            )
+        raise AssertionError(request.url.path)
+
+    client = await client_with(handler)
+    assert await client.categories() == ["movies", "tv"]
+    await client.close()
