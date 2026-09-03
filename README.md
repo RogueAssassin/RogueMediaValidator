@@ -13,10 +13,10 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.5.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
-[![GHCR](https://img.shields.io/badge/GHCR-TESTING-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
-[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
+[![Release](https://img.shields.io/badge/RELEASE-0.5.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator)
+[![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
+[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Amain)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
@@ -26,21 +26,18 @@ RogueMediaValidator (RMV) is a lightweight safety gate for automated torrent dow
 
 The validation engine is provider-neutral. Every torrent application is isolated behind a small adapter that normalizes torrents, files, lifecycle states, validation scopes, resume operations, and removal operations into the same RMV model.
 
-## Current testing release
+## Current release
 
-**v0.5.0-testing** completes the common headless/container torrent-client set and removes the old qBittorrent-specific compatibility layer from the testing architecture.
+**v0.5.0** completes the common headless/container torrent-client set and removes the old qBittorrent-specific compatibility layer from the active architecture.
 
-Testing image:
-
-```text
-ghcr.io/rogueassassin/roguemediavalidator:testing
-```
-
-Versioned testing tag:
+Stable images:
 
 ```text
-ghcr.io/rogueassassin/roguemediavalidator:0.5.0-testing
+ghcr.io/rogueassassin/roguemediavalidator:latest
+ghcr.io/rogueassassin/roguemediavalidator:0.5.0
 ```
+
+The permanent `testing` branch continues to publish `:testing` and versioned testing tags for the next development stage.
 
 ## Supported torrent clients
 
@@ -267,8 +264,8 @@ RMV does **not** mount Docker or Podman sockets and should never require:
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/.env.example -o .env
 chmod 600 .env
 ```
 
