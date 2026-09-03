@@ -32,17 +32,28 @@ class Store:
                         blocked_files INTEGER NOT NULL,
                         largest_video_bytes INTEGER NOT NULL,
                         checked_at TEXT NOT NULL,
-                        enforced INTEGER NOT NULL DEFAULT 0
+                        enforced INTEGER NOT NULL DEFAULT 0,
+                        policy_fingerprint TEXT NOT NULL DEFAULT '',
+                        action TEXT NOT NULL DEFAULT 'none',
+                        action_status TEXT NOT NULL DEFAULT 'audit',
+                        action_error TEXT
                     )
                 """)
                 columns = {
                     row[1] for row in db.execute("PRAGMA table_info(validations)").fetchall()
                 }
-                if "enforced" not in columns:
-                    db.execute(
-                        "ALTER TABLE validations "
-                        "ADD COLUMN enforced INTEGER NOT NULL DEFAULT 0"
-                    )
+                migrations = {
+                    "enforced": "INTEGER NOT NULL DEFAULT 0",
+                    "policy_fingerprint": "TEXT NOT NULL DEFAULT ''",
+                    "action": "TEXT NOT NULL DEFAULT 'none'",
+                    "action_status": "TEXT NOT NULL DEFAULT 'audit'",
+                    "action_error": "TEXT",
+                }
+                for name, definition in migrations.items():
+                    if name not in columns:
+                        db.execute(
+                            f"ALTER TABLE validations ADD COLUMN {name} {definition}"
+                        )
         except sqlite3.OperationalError as exc:
             raise RuntimeError(
                 f"RMV cannot open SQLite database at {self.path}. "
@@ -55,28 +66,54 @@ class Store:
         db.execute("PRAGMA synchronous=NORMAL")
         return db
 
-    def save(self, result: ValidationResult, *, enforced: bool = False):
+    def save(
+        self,
+        result: ValidationResult,
+        *,
+        policy_fingerprint: str,
+        enforced: bool = False,
+        action: str = "none",
+        action_status: str = "audit",
+        action_error: str | None = None,
+    ):
         data = result.as_dict()
-        data["enforced"] = int(enforced)
+        data.update(
+            {
+                "enforced": int(enforced),
+                "policy_fingerprint": policy_fingerprint,
+                "action": action,
+                "action_status": action_status,
+                "action_error": action_error,
+            }
+        )
         with self._connect() as db:
             db.execute("""
                 INSERT OR REPLACE INTO validations
                 (torrent_hash,torrent_name,category,status,reason,video_files,blocked_files,
-                 largest_video_bytes,checked_at,enforced)
+                 largest_video_bytes,checked_at,enforced,policy_fingerprint,action,
+                 action_status,action_error)
                 VALUES (:torrent_hash,:torrent_name,:category,:status,:reason,:video_files,
-                        :blocked_files,:largest_video_bytes,:checked_at,:enforced)
+                        :blocked_files,:largest_video_bytes,:checked_at,:enforced,
+                        :policy_fingerprint,:action,:action_status,:action_error)
             """, data)
 
-    def has(self, torrent_hash: str) -> bool:
-        with self._connect() as db:
-            return db.execute(
-                "SELECT 1 FROM validations WHERE torrent_hash=?", (torrent_hash,)
-            ).fetchone() is not None
-
-    def has_enforced(self, torrent_hash: str) -> bool:
+    def has_current(self, torrent_hash: str, policy_fingerprint: str) -> bool:
         with self._connect() as db:
             row = db.execute(
-                "SELECT enforced FROM validations WHERE torrent_hash=?", (torrent_hash,)
+                "SELECT 1 FROM validations WHERE torrent_hash=? AND policy_fingerprint=?",
+                (torrent_hash, policy_fingerprint),
+            ).fetchone()
+        return row is not None
+
+    def has_enforced_current(self, torrent_hash: str, policy_fingerprint: str) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                """
+                SELECT enforced
+                FROM validations
+                WHERE torrent_hash=? AND policy_fingerprint=?
+                """,
+                (torrent_hash, policy_fingerprint),
             ).fetchone()
         return bool(row and row[0])
 
@@ -96,10 +133,14 @@ class Store:
             enforced = db.execute(
                 "SELECT COUNT(*) FROM validations WHERE enforced=1"
             ).fetchone()[0]
+            action_failures = db.execute(
+                "SELECT COUNT(*) FROM validations WHERE action_status='failed'"
+            ).fetchone()[0]
         counts = {k: v for k, v in rows}
         return {
             "total": sum(counts.values()),
             "approved": counts.get("approved", 0),
             "blocked": counts.get("blocked", 0),
             "enforced": enforced,
+            "action_failures": action_failures,
         }
