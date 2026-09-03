@@ -95,6 +95,7 @@ async def diagnostics():
             "category_scope_fail_closed": not bool(settings.categories),
             "inspect_all_states": settings.qb_inspect_all_states,
             "action_states": sorted(settings.action_states),
+            "policy_fingerprint": settings.policy_fingerprint,
         },
         "service": service.snapshot(),
         "storage": store.stats(),
