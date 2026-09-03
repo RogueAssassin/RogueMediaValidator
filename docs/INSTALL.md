@@ -1,45 +1,65 @@
 # Installation
 
-RogueMediaValidator is designed to run beside qBittorrent, Radarr and Sonarr on a shared private container network.
+RogueMediaValidator 0.2.x uses **one `compose.yaml` for both Docker and Podman**.
 
-## Ports
+RMV runs beside qBittorrent on the shared private `media-net` network. The application listens internally on TCP 7811; `RMV_HTTP_PORT` controls only the host-side mapping.
 
-The application listens internally on TCP 7811. The host mapping is controlled by `RMV_HTTP_PORT` and defaults to 7811.
-
-## Podman
-
-RMV uses a managed named volume for SQLite data. The Podman-specific compose adds the `:U` ownership option so the volume is writable by RMV's non-root UID 10001 under rootless Podman.
+## Files
 
 ```bash
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.podman.yaml -o compose.podman.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
 curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
-
-podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
-podman compose --env-file .env -f compose.podman.yaml pull
-podman compose --env-file .env -f compose.podman.yaml up -d
+chmod 600 .env
 ```
 
-Check startup:
+Edit `.env`, configure the qBittorrent endpoint/credentials, and keep `RMV_DRY_RUN=true` for first-run validation.
+
+## Podman
 
 ```bash
-podman ps --filter name=roguemediavalidator
-podman logs --tail=100 roguemediavalidator
-curl -fsS http://127.0.0.1:${RMV_HTTP_PORT:-7811}/api/health
+podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
+podman compose --env-file .env -f compose.yaml config
+podman compose --env-file .env -f compose.yaml pull
+podman compose --env-file .env -f compose.yaml up -d
 ```
 
 ## Docker
 
-Use `compose.yaml`. Docker uses the same managed named volume without Podman's `:U` ownership flag.
+```bash
+docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
+docker compose --env-file .env -f compose.yaml config
+docker compose --env-file .env -f compose.yaml pull
+docker compose --env-file .env -f compose.yaml up -d
+```
 
-## Upgrading from the initial testing compose
+Both engines use the same managed named volume, `roguemediavalidator-data`, for `/data`. RMV itself runs as non-root UID 10001.
 
-The original testing compose used `./data:/data`. On rootless Podman that directory can be unwritable by RMV's non-root UID and produce `sqlite3.OperationalError: unable to open database file`.
+## First-run checks
 
-For the initial testing release, stop/remove the failed container and start with the Podman compose above. The managed volume is called `roguemediavalidator_roguemediavalidator-data` (the exact prefix may vary by compose provider).
+```bash
+curl -fsS http://127.0.0.1:7811/api/health
+curl -fsS http://127.0.0.1:7811/api/diagnostics
+```
+
+Confirm qBittorrent connects, categories are discovered, and only explicitly configured categories enter scope.
+
+## Upgrading from 0.1.x
+
+0.1.x had a Podman-specific `compose.podman.yaml`. Delete that obsolete file after moving to 0.2.0; use only `compose.yaml`.
+
+If the existing RMV named volume was created successfully under 0.1.x, it can be retained. The SQLite schema migrates automatically to add policy fingerprints and structured action outcome fields.
+
+If an old test volume has broken ownership and contains no data you need, recreate only the RMV volume.
 
 ## First-run safety
 
-Keep `RMV_DRY_RUN=true` until real qBittorrent metadata and decisions have been reviewed. Do not expose the RMV UI directly to the public Internet during testing.
+Keep:
+
+```env
+RMV_DRY_RUN=true
+```
+
+until real qBittorrent metadata and decisions have been reviewed. Do not expose the RMV UI directly to the public Internet during testing.
