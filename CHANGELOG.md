@@ -26,6 +26,7 @@ Multi-client architecture and guided installation milestone.
 - Dashboard terminology is now provider-neutral.
 - qBittorrent categories and Transmission labels are normalized as RMV scopes.
 - Fresh `.env.example` no longer assumes qBittorrent.
+- The external container network is configurable through `RMV_NETWORK` while `media-net` remains the default.
 - New generic `RMV_TORRENT_*` settings replace qBittorrent-specific settings for fresh installs.
 - Legacy `RMV_QB_*` settings remain supported for 0.3.x upgrades.
 - Testing image advances to `0.4.0-testing`.
