@@ -18,8 +18,11 @@ class Settings(BaseSettings):
     qb_url: str = "http://qbittorrent:8080"
     qb_username: str = ""
     qb_password: str = ""
-    qb_categories: str = "radarr,sonarr"
+    # Fail closed when no categories are configured. Use "*" explicitly to
+    # inspect every non-empty qBittorrent category.
+    qb_categories: str = ""
     qb_inspect_all_states: bool = True
+    qb_category_refresh_seconds: int = 60
     qb_action_states: str = (
         "pausedDL,stoppedDL,downloading,stalledDL,metaDL,queuedDL,"
         "checkingDL,forcedDL,allocating,checkingResumeData,moving"
