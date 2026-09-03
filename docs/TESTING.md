@@ -11,11 +11,21 @@ Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidato
 5. Explicitly configure the intended categories, such as `tv,movies`.
 6. Confirm known-good media validates as approved and blocked/unknown payload tests fail closed.
 7. Record the current `policy_fingerprint` from `/api/diagnostics`.
-8. Change a validation rule, such as `RMV_MIN_VIDEO_SIZE_MB`, restart RMV, and confirm the fingerprint changes and existing in-scope torrents can be revalidated.
+8. Change a validation rule, such as `RMV_MIN_VIDEO_SIZE_MB`, recreate the RMV container, and confirm the fingerprint changes and existing in-scope torrents can be revalidated.
 9. In controlled enforcement testing, confirm successful resume/delete actions record `action_status=success`.
 10. Simulate an action failure and confirm it is stored as `action_status=failed` without being marked enforced.
 11. Confirm SQLite history survives container restart/recreation.
 12. Only after those checks pass should permanent stack integration begin.
+
+## Environment changes require container recreation
+
+After changing `.env`, recreate RMV so the new environment is injected:
+
+```bash
+podman compose --env-file .env -f compose.yaml up -d --force-recreate
+```
+
+or the equivalent `docker compose` command. A plain container restart keeps the old environment.
 
 ## CI gates
 
