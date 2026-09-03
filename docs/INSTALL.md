@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator 0.4.x uses one `compose.yaml` for both Docker and Podman and supports browser-based torrent-client setup.
+RogueMediaValidator 0.5.x uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
 
 ## 1. Create the deployment
 
@@ -13,17 +13,22 @@ curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/t
 chmod 600 .env
 ```
 
-The fresh 0.4.0 environment leaves `RMV_TORRENT_CLIENT` blank so the Installation page is used.
+Keep the torrent client blank for browser setup:
 
-Set the external network shared with the torrent client, then keep dry-run enabled:
+```env
+RMV_TORRENT_CLIENT=
+RMV_TORRENT_URL=
+RMV_TORRENT_USERNAME=
+RMV_TORRENT_PASSWORD=
+```
+
+Set the shared network and keep dry-run enabled:
 
 ```env
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
 RMV_SETUP_UNLOCK=false
 ```
-
-If your torrent client uses a different external network name, change only `RMV_NETWORK`; the compose file does not need editing.
 
 ## 2. Start RMV
 
@@ -43,8 +48,6 @@ docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-RMV runs as non-root UID 10001 and uses a named volume for `/data`.
-
 ## 3. Open Installation
 
 Browse to:
@@ -53,104 +56,135 @@ Browse to:
 http://localhost:7811
 ```
 
-An unconfigured instance redirects to:
-
-```text
-/setup
-```
-
-Choose a supported provider.
+Supported choices:
 
 ### qBittorrent
-
-Suggested container-network endpoint:
 
 ```text
 http://qbittorrent:8080
 ```
 
-RMV uses qBittorrent categories as scopes.
+Credentials: Web UI username/password.
+
+Scope: categories.
+
+Payload deletion through API: supported.
 
 ### Transmission
-
-Suggested endpoint:
 
 ```text
 http://transmission:9091/transmission/rpc
 ```
 
-RMV uses Transmission torrent labels as scopes.
+Credentials: optional HTTP Basic username/password.
 
-Transmission HTTP Basic authentication is optional and may be left blank if the RPC service does not require it.
+Scope: labels.
+
+Payload deletion through API: supported.
+
+### Deluge
+
+```text
+http://deluge:8112/json
+```
+
+Credentials: Deluge Web UI password.
+
+RMV logs into Deluge Web and connects to a configured daemon host when necessary.
+
+Scope: Label plugin value when present, otherwise download location.
+
+Payload deletion through API: supported.
+
+### rTorrent / ruTorrent
+
+```text
+http://rutorrent/RPC2
+```
+
+Credentials: optional HTTP Basic credentials for the HTTP endpoint exposing XML-RPC.
+
+Scope: `custom1` when present, otherwise torrent directory.
+
+Payload deletion through normal XML-RPC: not guaranteed. RMV records a limited action when data deletion was requested.
+
+### aria2
+
+```text
+http://aria2:6800/jsonrpc
+```
+
+Credentials: aria2 RPC secret goes in the password/secret field.
+
+Scope: download directory.
+
+Payload deletion through normal JSON-RPC: not guaranteed. RMV records a limited action when data deletion was requested.
 
 ## 4. Test before save
 
-The wizard requires a successful connection test before Save & finish setup becomes available.
+Installation requires a successful API test before Save & finish setup is enabled.
 
-The connection test retrieves the client version and current scopes.
+The test verifies:
 
-The final save persists the provider configuration to the RMV data volume and loads the client immediately.
+- endpoint reachability;
+- authentication;
+- client version;
+- scope discovery;
+- provider data-deletion capability.
 
 ## 5. Scope bootstrap
 
-With:
+Default:
 
 ```env
 RMV_TORRENT_SCOPES=
 RMV_TORRENT_AUTO_BOOTSTRAP_SCOPES=true
 ```
 
-the first non-empty discovered category/label set is persisted as managed scope.
+The first non-empty discovered provider scope set is persisted.
 
 New scopes discovered later remain visible but unmanaged.
 
 ## Advanced environment configuration
 
-To skip browser setup:
+Skip browser setup with any supported provider ID:
 
-```env
-RMV_TORRENT_CLIENT=qbittorrent
-RMV_TORRENT_URL=http://qbittorrent:8080
-RMV_TORRENT_USERNAME=admin
-RMV_TORRENT_PASSWORD=secret
+```text
+qbittorrent
+transmission
+deluge
+rtorrent
+aria2
 ```
 
-or:
+Example:
 
 ```env
-RMV_TORRENT_CLIENT=transmission
-RMV_TORRENT_URL=http://transmission:9091/transmission/rpc
+RMV_TORRENT_CLIENT=deluge
+RMV_TORRENT_URL=http://deluge:8112/json
 RMV_TORRENT_USERNAME=
-RMV_TORRENT_PASSWORD=
+RMV_TORRENT_PASSWORD=deluge-web-password
 ```
-
-Environment configuration takes precedence over browser-persisted setup.
-
-## Existing 0.3.x qBittorrent installs
-
-Legacy `RMV_QB_*` settings remain supported. Existing deployments can pull 0.4.0 without rewriting their current qBittorrent environment immediately.
 
 ## Reconfiguring browser setup
 
-Setup writes lock after configuration.
-
-To intentionally unlock:
+Set:
 
 ```env
 RMV_SETUP_UNLOCK=true
 ```
 
-Then recreate:
+and recreate:
 
 ```bash
 podman compose --env-file .env -f compose.yaml up -d --force-recreate
 ```
 
-Make the change at `/setup`, then set the unlock back to false and recreate again.
+After changing provider settings, return `RMV_SETUP_UNLOCK=false` and recreate again.
 
 ## Applying .env changes
 
-A normal container restart does not reload changed environment variables.
+A normal restart does not reload container environment variables.
 
 Use:
 
@@ -160,14 +194,12 @@ podman compose --env-file .env -f compose.yaml up -d --force-recreate
 
 or the Docker equivalent.
 
-Do not add `-v` unless deleting the RMV database, setup state and audit history is intentional.
+Do not use `down -v` unless deleting RMV's database, setup state and audit history is intentional.
 
-## Security model
+## Security
 
-RMV does not need access to Docker or Podman sockets.
+RMV does not mount Docker/Podman sockets.
 
-Do not mount a container-engine socket into RMV.
+Keep the setup interface private.
 
-Browser-stored client credentials remain in the private RMV data volume and are not returned through diagnostics APIs.
-
-Keep RMV on a trusted/private network while testing.
+Credentials saved by browser setup stay in RMV's private data volume and are not returned through diagnostics.
