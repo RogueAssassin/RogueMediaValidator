@@ -167,10 +167,20 @@
         testedSignature = null;
       }
 
-      function show(kind, html) {
+      function show(kind, title, lines = []) {
         result.hidden = false;
         result.className = 'setup-result ' + kind;
-        result.innerHTML = html;
+        result.replaceChildren();
+
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        result.appendChild(heading);
+
+        lines.forEach(line => {
+          const detail = document.createElement('span');
+          detail.textContent = line;
+          result.appendChild(detail);
+        });
       }
 
       cards.forEach(card => {
@@ -216,19 +226,18 @@
       testButton.addEventListener('click', async () => {
         testButton.disabled = true;
         saveButton.disabled = true;
-        show('working', '<strong>Testing connection…</strong><span>Contacting the selected torrent client API.</span>');
+        show('working', 'Testing connection…', ['Contacting the selected torrent client API.']);
         try {
           const data = await call('/api/setup/test');
           testedSignature = signature();
           const scopes = data.scopes?.length ? data.scopes.join(', ') : 'None currently discovered';
-          show('success',
-            '<strong>Connection successful</strong>' +
-            '<span>' + data.name + ' ' + data.version + '</span>' +
-            '<span>' + data.scope_name + ': ' + scopes + '</span>'
-          );
+          show('success', 'Connection successful', [
+            data.name + ' ' + data.version,
+            data.scope_name + ': ' + scopes
+          ]);
           saveButton.disabled = false;
         } catch (error) {
-          show('error', '<strong>Connection failed</strong><span>' + error.message + '</span>');
+          show('error', 'Connection failed', [error.message]);
         } finally {
           testButton.disabled = false;
         }
@@ -236,25 +245,24 @@
 
       saveButton.addEventListener('click', async () => {
         if (testedSignature !== signature()) {
-          show('error', '<strong>Test required</strong><span>Connection details changed. Test them again before saving.</span>');
+          show('error', 'Test required', ['Connection details changed. Test them again before saving.']);
           saveButton.disabled = true;
           return;
         }
 
         saveButton.disabled = true;
         testButton.disabled = true;
-        show('working', '<strong>Saving setup…</strong><span>Persisting the provider and discovering validation scope.</span>');
+        show('working', 'Saving setup…', ['Persisting the provider and discovering validation scope.']);
         try {
           const data = await call('/api/setup/save');
           const scopes = data.managed_scopes?.length ? data.managed_scopes.join(', ') : 'Waiting for labels/categories';
-          show('success',
-            '<strong>RMV is ready</strong>' +
-            '<span>Managed scope: ' + scopes + '</span>' +
-            '<span>Opening dashboard…</span>'
-          );
+          show('success', 'RMV is ready', [
+            'Managed scope: ' + scopes,
+            'Opening dashboard…'
+          ]);
           setTimeout(() => window.location.assign(data.redirect || '/'), 700);
         } catch (error) {
-          show('error', '<strong>Setup failed</strong><span>' + error.message + '</span>');
+          show('error', 'Setup failed', [error.message]);
           testButton.disabled = false;
         }
       });
