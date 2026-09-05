@@ -58,6 +58,18 @@ class Store:
                         updated_at TEXT NOT NULL
                     )
                 """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS automation_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        torrent_hash TEXT NOT NULL,
+                        provider TEXT NOT NULL,
+                        instance TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        detail TEXT NOT NULL DEFAULT '',
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
                 columns = {
                     row[1] for row in db.execute("PRAGMA table_info(validations)").fetchall()
                 }
@@ -276,6 +288,49 @@ class Store:
                 "SELECT COUNT(*) FROM quarantine WHERE state='held'"
             ).fetchone()
         return int(row[0] if row else 0)
+
+    def save_automation_event(
+        self,
+        *,
+        torrent_hash: str,
+        provider: str,
+        instance: str,
+        event_type: str,
+        status: str,
+        detail: str = "",
+    ):
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO automation_events
+                (torrent_hash,provider,instance,event_type,status,detail)
+                VALUES (?,?,?,?,?,?)
+                """,
+                (torrent_hash, provider, instance, event_type, status, detail),
+            )
+
+    def automation_events(self, limit: int = 50) -> list[dict]:
+        with self._connect() as db:
+            db.row_factory = sqlite3.Row
+            rows = db.execute(
+                "SELECT * FROM automation_events ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def automation_stats(self) -> dict:
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT status, COUNT(*) FROM automation_events GROUP BY status"
+            ).fetchall()
+        counts = {str(k): int(v) for k, v in rows}
+        return {
+            "total": sum(counts.values()),
+            "reported": counts.get("reported", 0),
+            "not_found": counts.get("not_found", 0),
+            "failed": counts.get("failed", 0),
+            "skipped": counts.get("skipped", 0),
+        }
 
     def recent(self, limit: int = 50) -> list[dict]:
         with self._connect() as db:
