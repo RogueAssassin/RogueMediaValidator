@@ -199,3 +199,17 @@ async def test_manager_isolates_provider_failure_and_audits_each_instance(tmp_pa
     assert len(events) == 2
     assert {event["status"] for event in events} == {"reported", "failed"}
     assert store.automation_stats()["failed"] == 1
+
+
+@pytest.mark.asyncio
+async def test_manager_deduplicates_successful_rejection_feedback(tmp_path):
+    store = Store(tmp_path / "rmv.db")
+    manager = AutomationManager([GoodProvider()], store)
+
+    first = await manager.report_rejection({"torrent_hash": "same-hash"})
+    second = await manager.report_rejection({"torrent_hash": "same-hash"})
+
+    assert first[0]["status"] == "reported"
+    assert second[0]["status"] == "skipped"
+    assert second[0]["reason"] == "rejection feedback already reported"
+    assert len(store.automation_events(10)) == 1
