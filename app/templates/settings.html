@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090d14">
+  <title>Settings · RogueMediaValidator</title>
+  <link rel="icon" type="image/png" href="/static/icons/roguemediavalidator-approved-128.png">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RMV">
+        <div class="brand-copy">
+          <strong>RogueMediaValidator</strong>
+          <span>Administration · v{{ version }}</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="mode-chip {{ 'dry' if settings.dry_run else 'live' }}">{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</span>
+        <a class="button secondary" href="/">Dashboard</a>
+        <a class="button secondary" href="/setup">Installation</a>
+      </div>
+    </header>
+
+    <main class="settings-main">
+      <section class="setup-hero">
+        <p class="eyebrow">0.6.0 operator control</p>
+        <h1>Settings</h1>
+        <p>Manage RMV's operational scope without editing the provider configuration. Administrative access is protected by the credentials configured in <code>.env</code>.</p>
+      </section>
+
+      <section class="panel settings-summary">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">Configuration ownership</span>
+            <h2>Current control sources</h2>
+          </div>
+          <span class="state neutral">Admin: {{ admin_username }}</span>
+        </div>
+        <dl class="facts">
+          <div><dt>Torrent client</dt><dd>{{ health.torrent_client_name }}</dd></div>
+          <div><dt>Provider config</dt><dd>{{ client_config.source if client_config else 'none' }}</dd></div>
+          <div><dt>Scope source</dt><dd>{{ health.diagnostics.scope_source | replace('_', ' ') | title }}</dd></div>
+          <div><dt>Mode</dt><dd>{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="panel settings-scopes">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">Validation scope</span>
+            <h2>Managed {{ health.diagnostics.scope_name }}</h2>
+          </div>
+          {% if scope_locked %}
+          <span class="state warn">Environment controlled</span>
+          {% else %}
+          <span class="state ok">UI controlled</span>
+          {% endif %}
+        </div>
+
+        {% if scope_locked %}
+          <div class="setup-note">
+            <strong>RMV_TORRENT_SCOPES is set in the environment.</strong>
+            <p>Environment configuration has priority and is intentionally read-only here. Clear <code>RMV_TORRENT_SCOPES</code> in <code>.env</code> and recreate RMV before switching to UI-managed scopes.</p>
+          </div>
+        {% else %}
+          <p class="settings-help">Choose exactly which discovered {{ health.diagnostics.scope_name }} RMV may manage. Removing every scope is allowed and safely makes RMV fail closed.</p>
+
+          <form id="scope-form">
+            <div class="scope-picker">
+              {% for scope in available_scopes %}
+                <label class="scope-option">
+                  <input type="checkbox" name="scope" value="{{ scope }}" {% if scope in health.diagnostics.managed_scopes %}checked{% endif %}>
+                  <span>
+                    <strong>{{ scope }}</strong>
+                    <small>{{ 'Managed now' if scope in health.diagnostics.managed_scopes else 'Discovered, not managed' }}</small>
+                  </span>
+                </label>
+              {% else %}
+                <div class="empty-inline">No scopes have been discovered yet. Confirm the torrent client is connected and try again.</div>
+              {% endfor %}
+            </div>
+
+            <div class="settings-warning">
+              Scope changes affect which torrents RMV is allowed to inspect and enforce. New scopes are never silently added.
+            </div>
+
+            <div class="setup-actions">
+              <button class="button primary" type="submit">Save managed scopes</button>
+            </div>
+            <div id="scope-result" class="setup-result" hidden></div>
+          </form>
+        {% endif %}
+      </section>
+
+      <section class="panel setup-help">
+        <div>
+          <span class="section-label">Safety model</span>
+          <h2>Fail closed</h2>
+          <p>If no managed scope is selected, RMV manages nothing. This prevents accidental enforcement expansion during reconfiguration.</p>
+        </div>
+        <div>
+          <span class="section-label">Environment priority</span>
+          <h2>Predictable ownership</h2>
+          <p>Explicit <code>RMV_TORRENT_SCOPES</code> always wins over browser settings. The UI never overrides environment-owned configuration.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  {% if not scope_locked %}
+  <script>
+    const form = document.getElementById('scope-form');
+    const result = document.getElementById('scope-result');
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const scopes = [...form.querySelectorAll('input[name="scope"]:checked')].map((input) => input.value);
+      result.hidden = false;
+      result.className = 'setup-result working';
+      result.innerHTML = '<strong>Saving…</strong><span>Updating managed scopes.</span>';
+
+      try {
+        const response = await fetch('/api/admin/scopes', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({scopes}),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'Unable to save managed scopes.');
+
+        result.className = 'setup-result success';
+        result.innerHTML = '<strong>Saved</strong><span>' +
+          (payload.managed_scopes.length ? 'Managed: ' + payload.managed_scopes.join(', ') : 'No scopes managed — RMV is fail-closed.') +
+          '</span>';
+      } catch (error) {
+        result.className = 'setup-result error';
+        result.innerHTML = '<strong>Save failed</strong><span>' + error.message + '</span>';
+      }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>
