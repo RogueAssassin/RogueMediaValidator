@@ -174,7 +174,7 @@ def test_settings_template_explains_configuration_ownership():
     }
 
     rendered = template.render(
-        version="0.9.0",
+        version="1.0.0",
         settings=settings,
         health=health,
         available_scopes=["movies", "tv"],
@@ -183,7 +183,7 @@ def test_settings_template_explains_configuration_ownership():
         client_config={"source": "setup"},
     )
 
-    assert "0.9.0 operations control" in rendered
+    assert "Operations control" in rendered
     assert "Save managed scopes" in rendered
     assert "movies" in rendered
     assert "Discovered, not managed" in rendered
