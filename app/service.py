@@ -102,6 +102,12 @@ class ValidationService:
             return
 
         if self.client_name:
+            manual = self.store.manual_scopes(self.client_name)
+            if manual is not None:
+                self.managed_scopes = manual
+                self.scope_source = "ui"
+                return
+
             persisted = self.store.bootstrap_scopes(self.client_name)
             if persisted:
                 self.managed_scopes = persisted
@@ -110,6 +116,19 @@ class ValidationService:
 
         self.managed_scopes = frozenset()
         self.scope_source = "none"
+
+    def set_managed_scopes(self, scopes: list[str]):
+        if not self.client_name:
+            raise ValueError("Torrent client is not configured.")
+        if self.settings.scopes:
+            raise ValueError(
+                "Managed scopes are controlled by RMV_TORRENT_SCOPES in the environment."
+            )
+
+        normalized = frozenset(x.strip().lower() for x in scopes if x.strip())
+        self.store.set_manual_scopes(sorted(normalized), self.client_name)
+        self.managed_scopes = normalized
+        self.scope_source = "ui"
 
     async def reconfigure(self, client: TorrentClient, client_name: str):
         async with self._client_lock:
@@ -141,6 +160,8 @@ class ValidationService:
         if self.settings.scopes:
             return
         if not self.settings.torrent_auto_bootstrap_scopes:
+            return
+        if self.store.manual_scopes(self.client_name) is not None:
             return
         if self.store.scope_bootstrap_complete(self.client_name):
             return
