@@ -37,9 +37,9 @@ jobs:
             org.opencontainers.image.description=Multi-client pre-download torrent payload validator for Docker and Podman media automation.
           tags: |
             type=raw,value=testing,enable=${{ github.ref == 'refs/heads/testing' }}
-            type=raw,value=0.5.0-testing,enable=${{ github.ref == 'refs/heads/testing' }}
+            type=raw,value=1.0.0-testing,enable=${{ github.ref == 'refs/heads/testing' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=0.5.0,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=1.0.0,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
             type=sha
       - uses: docker/build-push-action@v7
