@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     auto_resume_valid: bool = True
     quarantine_rejected: bool = False
 
+    # 0.8.0 provider-neutral TV/movie automation integrations.
+    # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
+    automation_providers_json: str = ""
+
     @staticmethod
     def _csv(value: str) -> frozenset[str]:
         return frozenset(x.strip().lower().lstrip(".") for x in value.split(",") if x.strip())
