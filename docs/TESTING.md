@@ -2,7 +2,9 @@
 
 Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidator:testing`.
 
-## 0.8.0 universal media automation test plan
+## 0.9.0 operations test plan
+
+v0.8.0 provider/automation regressions remain mandatory. The 0.9.0 cycle adds notifications, ecosystem and long-running operational testing.
 
 Every supported provider must pass:
 
@@ -139,5 +141,5 @@ Testing publishes:
 
 ```text
 :testing
-:0.8.0-testing
+:0.9.0-testing
 ```
