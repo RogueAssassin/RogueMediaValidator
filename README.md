@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.6.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.7.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -28,7 +28,7 @@ The validation engine is provider-neutral. Every torrent application is isolated
 
 ## Testing channel
 
-This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **Testing is now advancing toward v0.6.0**, focused on administration, operator control, UI-managed scopes and clearer validation detail.
+This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **Testing is now advancing through v0.7.0**, focused on real quarantine holds and the foundation for optional deep/post-download media validation.
 
 Testing image:
 
@@ -289,6 +289,7 @@ RMV_HTTP_PORT=7811
 RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:testing
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
+RMV_QUARANTINE_REJECTED=false
 RMV_ADMIN_USERNAME=operator
 RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
 
@@ -304,6 +305,7 @@ What to change:
 - **`RMV_IMAGE`** — normally leave this unchanged; this README is configured for the **testing** channel.
 - **`RMV_NETWORK`** — set this to the existing Docker/Podman network used by your torrent client. `media-net` is only the default.
 - **`RMV_DRY_RUN=true`** — keep this enabled for the first install so RMV validates and records results without resuming or removing torrents.
+- **`RMV_QUARANTINE_REJECTED=false`** — 0.7.0 quarantine is opt-in. Set it to `true` only when you want blocked actionable torrents paused/stopped and held for review instead of removed.
 - **`RMV_ADMIN_USERNAME` / `RMV_ADMIN_PASSWORD`** — set both to enable the authenticated 0.6.0 Settings page. Use a strong unique password; there is deliberately no default admin password.
 - **Torrent client fields** — leave these four values blank when using the browser Installation wizard. Advanced users may fill them in to manage the provider entirely through environment variables.
 
@@ -358,6 +360,32 @@ Select your torrent client, enter its API/Web UI connection details, run **Test 
 Keep RMV in dry-run until Diagnostics shows the correct client, scopes and expected validation results. Open **Settings** to review configuration ownership and explicitly add/remove managed scopes. The Settings page uses HTTP Basic authentication from `RMV_ADMIN_USERNAME` and `RMV_ADMIN_PASSWORD`.
 
 When you are satisfied, edit `.env` again with `nano .env`, set `RMV_DRY_RUN=false`, and recreate the container so enforcement becomes active.
+
+## 0.7.0 quarantine testing
+
+Quarantine is deliberately disabled by default:
+
+```env
+RMV_QUARANTINE_REJECTED=false
+```
+
+To test the 0.7.0 hold workflow, keep RMV in dry-run while confirming scopes, then set:
+
+```env
+RMV_QUARANTINE_REJECTED=true
+```
+
+and recreate the container. When enforcement is active, a rejected actionable torrent is paused/stopped through the selected provider API, recorded with `action=quarantine` and `action_status=held`, and retained for operator review instead of being deleted.
+
+Held items are visible in the dashboard and at:
+
+```text
+GET /api/quarantine
+```
+
+Quarantine takes precedence over `RMV_REMOVE_REJECTED` only when explicitly enabled. The existing delete/remove path remains the default behavior.
+
+This first 0.7.0 slice is the safe hold/audit foundation. Optional ffprobe/signature validation and operator recheck/release workflows remain part of the 0.7.x testing cycle.
 
 ## Advanced environment-managed setup
 
