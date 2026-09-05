@@ -11,7 +11,32 @@ Notifications, ecosystem and operations milestone opened after successful v0.8.0
 - Radarr/Sonarr and generic webhook automation support remain mandatory regression coverage.
 - Torrent-provider, quarantine, scope and administration behavior remain part of the 0.9.0 compatibility contract.
 
-### 0.9.0 goals
+### Added in the first 0.9.0 testing slice
+
+- Best-effort provider-neutral notification framework.
+- Generic webhook notification targets with optional Bearer authentication.
+- Per-target event subscriptions for approved, rejected, failed, limited and quarantined outcomes.
+- Explicit `rmv.test` notification connection testing from Settings.
+- Separate notification-delivery audit history and metrics.
+- `/healthz` process-liveness endpoint.
+- `/readyz` operational-readiness endpoint with HTTP 503 fail state.
+- Compact no-secret `/api/status` integration endpoint for RogueDashboard/monitoring.
+- Authenticated validation-audit CSV and JSON export.
+- Configurable age- and count-based validation-history retention.
+- Hourly retention enforcement plus manual cleanup from Settings.
+- Settings UI for notification testing, monitoring endpoints, export and retention cleanup.
+- Regression tests for notification isolation, event filtering, retention and config preservation.
+
+### Remaining 0.9.0 goals
+
+- richer RogueDashboard presentation/integration;
+- additional notification destinations where useful;
+- deeper operational metrics and trend visibility;
+- backup, restore and recovery guidance for persistent RMV state;
+- UI/UX accessibility and responsive-layout hardening;
+- performance profiling for larger histories and busy torrent clients.
+
+### Original 0.9.0 goals
 
 - notification events for approved, rejected, failed and limited outcomes;
 - RogueDashboard integration;
