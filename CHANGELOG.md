@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 - testing
+
+Post-1.0 development channel.
+
+### Baseline
+
+- Starts from the released v1.0.0 main branch.
+- Keeps all v1.0.0 security, usability, documentation and provider fixes.
+- Future changes must remain backwards-compatible with the v1.0.0 configuration/database contract unless explicitly documented.
+
+
 ## 1.0.0 - 2026-09-05
 
 First production release.
