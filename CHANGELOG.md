@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.7.0 - testing - 2026-09-05
+
+Quarantine and deep-media-validation milestone.
+
+### Added in the first 0.7.0 testing build
+
+- Provider-neutral `pause()`/hold capability across qBittorrent, Transmission, Deluge, rTorrent/ruTorrent and aria2.
+- Opt-in `RMV_QUARANTINE_REJECTED` setting, disabled by default.
+- Rejected actionable torrents can now be paused/stopped and held instead of deleted.
+- Persistent SQLite quarantine records with torrent, provider, scope, reason and lifecycle timestamps.
+- `GET /api/quarantine` for held-item inspection.
+- Dashboard quarantine metric and Settings visibility.
+- Quarantine action auditing using `action=quarantine` and `action_status=held`.
+- Regression tests proving quarantine takes precedence over deletion only when explicitly enabled.
+- Existing delete/remove behavior remains unchanged when quarantine is disabled.
+
+### Remaining in the 0.7.x testing cycle
+
+- Structured per-file validation reason detail.
+- Quarantine operator review/recheck/release workflow.
+- Optional post-download ffprobe validation.
+- Media/container signature checks where practical.
+- Bounded media-path access and disk/path safety controls.
+- Quarantine retention and cleanup policy.
+- Improved history filtering and detailed validation inspection.
+
+### Safety
+
+- Quarantine is opt-in and does not change existing 0.6.x behavior by default.
+- A quarantined torrent must be paused/stopped through the provider API; RMV does not label an actively downloading torrent as safely held.
+- Quarantine preserves payload data for review and avoids destructive deletion when enabled.
+
+
 ## 0.6.0 - testing - 2026-09-05
 
 Administration and operator-control development milestone.
