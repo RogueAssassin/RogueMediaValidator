@@ -1,3 +1,4 @@
+import json
 import logging
 
 from .base import AutomationProvider
@@ -83,7 +84,7 @@ class AutomationManager:
                 instance=outcome["instance"],
                 event_type="rejected",
                 status=str(outcome.get("status", "unknown")),
-                detail=str(outcome.get("reason", "")),
+                detail=json.dumps(outcome, sort_keys=True, separators=(",", ":")),
             )
             results.append(outcome)
 
