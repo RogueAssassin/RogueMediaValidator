@@ -61,6 +61,11 @@
           <small>rejected payloads</small>
         </article>
         <article class="metric">
+          <span>Quarantined</span>
+          <strong class="{{ 'bad' if stats.quarantined else '' }}">{{ stats.quarantined }}</strong>
+          <small>held for operator review</small>
+        </article>
+        <article class="metric">
           <span>Action issues</span>
           <strong class="{{ 'bad' if stats.action_failures else '' }}">{{ stats.action_failures + stats.limited_actions }}</strong>
           <small>{{ stats.action_failures }} failed · {{ stats.limited_actions }} limited</small>
@@ -173,6 +178,7 @@
             <div><dt>Scope bootstrap</dt><dd>{{ 'Complete' if health.diagnostics.scope_bootstrap_complete else 'Pending' }}</dd></div>
             <div><dt>Scope type</dt><dd>{{ health.diagnostics.scope_name|title }}</dd></div>
             <div><dt>Delete payload data</dt><dd>{{ 'Supported' if health.supports_delete_data else 'Torrent removal only' }}</dd></div>
+            <div><dt>Quarantine mode</dt><dd>{{ 'Enabled' if health.diagnostics.quarantine_rejected else 'Disabled' }}</dd></div>
           </dl>
           <div class="technical-copy">
             <span class="section-label">Action states</span>
