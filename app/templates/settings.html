@@ -9,27 +9,28 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RMV">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RogueMediaValidator">
         <div class="brand-copy">
           <strong>RogueMediaValidator</strong>
           <span>Administration · v{{ version }}</span>
         </div>
       </div>
-      <div class="topbar-actions">
+      <nav class="topbar-actions" aria-label="Primary navigation">
         <span class="mode-chip {{ 'dry' if settings.dry_run else 'live' }}">{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</span>
         <a class="button secondary" href="/">Dashboard</a>
         <a class="button secondary" href="/setup">Installation</a>
-      </div>
+      </nav>
     </header>
 
-    <main class="settings-main">
+    <main class="settings-main" id="main-content">
       <section class="setup-hero">
         <p class="eyebrow">Operations control</p>
         <h1>Settings</h1>
-        <p>Manage RMV scope, integrations, notifications, monitoring and audit lifecycle from one protected operator surface. Administrative access is protected by the credentials configured in <code>.env</code>.</p>
+        <p>Manage validation scope and optional integrations from one protected operator page. Advanced configuration remains in <code>.env</code>.</p>
       </section>
 
       <section class="panel settings-summary">
@@ -92,7 +93,7 @@
             <div class="setup-actions">
               <button class="button primary" type="submit">Save managed scopes</button>
             </div>
-            <div id="scope-result" class="setup-result" hidden></div>
+            <div id="scope-result" class="setup-result" role="status" aria-live="polite" hidden></div>
           </form>
         {% endif %}
       </section>
@@ -142,7 +143,7 @@
             <a class="button secondary" href="/api/automation/events" target="_blank" rel="noopener">Feedback events</a>
             <button class="button primary" type="button" id="automation-test">Test integrations</button>
           </div>
-          <div id="automation-result" class="setup-result" hidden></div>
+          <div id="automation-result" class="setup-result" role="status" aria-live="polite" hidden></div>
         {% else %}
           <p class="settings-help">
             No media automation providers are configured. Add Radarr, Sonarr or generic webhook instances through <code>RMV_AUTOMATION_PROVIDERS_JSON</code>.
@@ -181,7 +182,7 @@
             <a class="button secondary" href="/api/notifications/events" target="_blank" rel="noopener">Notification events</a>
             <button class="button primary" type="button" id="notification-test">Test notifications</button>
           </div>
-          <div id="notification-result" class="setup-result" hidden></div>
+          <div id="notification-result" class="setup-result" role="status" aria-live="polite" hidden></div>
         {% else %}
           <p class="settings-help">
             No notification targets are configured. Add optional webhook targets with <code>RMV_NOTIFICATION_TARGETS_JSON</code>.
@@ -208,7 +209,7 @@
           <a class="button secondary" href="/api/admin/audit/export.json" target="_blank" rel="noopener">Export JSON</a>
           <button class="button primary" type="button" id="audit-prune">Run retention cleanup</button>
         </div>
-        <div id="audit-result" class="setup-result" hidden></div>
+        <div id="audit-result" class="setup-result" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="panel setup-help">
