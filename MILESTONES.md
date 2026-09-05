@@ -40,22 +40,24 @@ The permanent `testing` branch is where each milestone is developed and validate
 
 ---
 
-## 0.6.0 — Administration and operator control
+## 0.6.0 — Administration and operator control ✅
 
 **Goal:** make RMV comfortable to operate day-to-day without requiring routine `.env` editing.
 
-Planned:
+Validated foundation:
 - authenticated administrative/settings area
 - UI-managed scope selection after initial discovery
 - add/remove managed scopes without silently enrolling new discoveries
 - clear environment-vs-persisted configuration ownership
-- structured per-file validation reasons in the UI/API
-- improved validation history filtering and detail
-- safer confirmation flows for destructive settings
-- clearer dry-run/enforcement state and activation guidance
-- configuration validation and actionable error messages
-- upgrade-safe persistence/schema migration tests
-- refreshed README, Installation and Testing documentation
+- explicit fail-closed empty scope selection
+- provider-neutral regression coverage retained
+- refreshed README and Installation documentation
+
+Carried into the 0.7.x operator-review work:
+- structured per-file validation reasons
+- improved validation history filtering/detail
+- safer destructive-action confirmation and review workflows
+- deeper migration/recovery coverage
 
 **0.6.0 exit criteria:**
 - fresh Docker and Podman installs pass
@@ -65,12 +67,18 @@ Planned:
 - scope changes cannot accidentally broaden enforcement
 - CI and container builds pass on testing
 
-## 0.7.0 — Quarantine and deep media validation
+## 0.7.0 — Quarantine and deep media validation — active testing
 
 **Goal:** move beyond torrent filename/metadata policy into optional post-download media verification.
 
-Planned:
-- quarantine workflow for rejected or suspicious payloads
+Implemented in first 0.7.0 testing slice:
+- provider-neutral pause/stop capability for all supported torrent clients
+- opt-in quarantine workflow for rejected actionable payloads
+- persistent quarantine audit records and dashboard/API visibility
+- quarantine precedence over deletion only when explicitly enabled
+
+Next:
+- quarantine workflow for suspicious/post-download payloads
 - configurable quarantine behavior and retention
 - optional post-download ffprobe validation
 - media/container signature checks where practical
