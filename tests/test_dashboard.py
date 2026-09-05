@@ -36,6 +36,7 @@ def test_dashboard_template_renders_with_generic_client_context():
             "discovered_scopes": ["manual", "movies", "tv"],
             "scope_source": "auto_bootstrap",
             "scope_bootstrap_complete": True,
+            "quarantine_rejected": True,
         },
     }
     stats = {
@@ -45,6 +46,7 @@ def test_dashboard_template_renders_with_generic_client_context():
         "enforced": 0,
         "action_failures": 0,
         "limited_actions": 0,
+        "quarantined": 1,
     }
     recent = [
         {
@@ -76,6 +78,8 @@ def test_dashboard_template_renders_with_generic_client_context():
     assert "Installation" in rendered
     assert "Diagnostics" in rendered
     assert "Delete payload data" in rendered
+    assert "Quarantined" in rendered
+    assert "Quarantine mode" in rendered
 
 
 def test_setup_template_lists_all_supported_providers():
@@ -159,7 +163,7 @@ def test_setup_template_lists_all_supported_providers():
 
 def test_settings_template_explains_configuration_ownership():
     template = template_env().get_template("settings.html")
-    settings = SimpleNamespace(dry_run=True)
+    settings = SimpleNamespace(dry_run=True, quarantine_rejected=True)
     health = {
         "torrent_client_name": "qBittorrent",
         "diagnostics": {
