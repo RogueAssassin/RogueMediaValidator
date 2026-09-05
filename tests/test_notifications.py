@@ -85,6 +85,7 @@ class GoodTarget:
             "name": self.display_name,
             "configured": True,
             "events": ["rejected"],
+            "http_status": 200,
         }
 
     async def send(self, event_type, payload):
@@ -130,3 +131,26 @@ async def test_notification_manager_skips_unsubscribed_events(tmp_path):
 
     assert results == []
     assert store.notification_events(10) == []
+
+
+@pytest.mark.asyncio
+async def test_webhook_notification_test_posts_rmv_test_event():
+    received = {}
+
+    def handler(request: httpx.Request):
+        received["payload"] = json.loads(request.content)
+        return httpx.Response(204)
+
+    target = WebhookNotificationTarget(
+        name="Ops",
+        url="http://notify.local/rmv",
+        events=frozenset({"rejected"}),
+    )
+    await target.client.aclose()
+    target.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+    result = await target.test()
+
+    assert result["http_status"] == 204
+    assert received["payload"]["event"] == "rmv.test"
+    await target.close()
