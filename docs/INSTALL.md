@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator 0.8.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
+RogueMediaValidator 0.9.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
 
 ## 1. Create the deployment
 
