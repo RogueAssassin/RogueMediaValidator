@@ -7,6 +7,8 @@ RogueMediaValidator is a safety boundary for automated torrent downloads and sho
 - Do not mount Docker or Podman sockets.
 - Keep `RMV_SETUP_UNLOCK=false` during normal operation.
 - Setup credentials are stored in the private RMV data volume and are not returned by diagnostics.
+- Set a strong unique `RMV_ADMIN_PASSWORD`; there is no default admin password.
+- Treat torrent-client credentials, automation API keys and webhook tokens as secrets.
 - Do not expose an unlocked Installation page directly to the public Internet.
 - Use HTTPS and authentication before exposing RMV outside a trusted network.
 - RMV fails closed for unknown payload file extensions.
