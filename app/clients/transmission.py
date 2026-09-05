@@ -221,6 +221,14 @@ class TransmissionClient:
             for item in torrents[0].get("files", [])
         ]
 
+    async def pause(self, torrent_hash: str):
+        await self._call(
+            "torrent_stop",
+            {"ids": [torrent_hash]},
+            legacy_method="torrent-stop",
+            legacy_arguments={"ids": [torrent_hash]},
+        )
+
     async def resume(self, torrent_hash: str):
         await self._call(
             "torrent_start",
