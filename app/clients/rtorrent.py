@@ -116,6 +116,9 @@ class RTorrentClient:
             files.append({"name": str(row[0]), "size": int(row[1] or 0)})
         return files
 
+    async def pause(self, torrent_hash: str):
+        await self._rpc("d.stop", torrent_hash)
+
     async def resume(self, torrent_hash: str):
         await self._rpc("d.start", torrent_hash)
 
