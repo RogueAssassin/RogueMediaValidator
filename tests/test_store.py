@@ -31,6 +31,7 @@ def test_store_creates_database_in_writable_directory(tmp_path: Path):
         "enforced": 0,
         "action_failures": 0,
         "limited_actions": 0,
+        "quarantined": 0,
     }
 
 
@@ -133,3 +134,22 @@ def test_manual_scopes_are_provider_isolated(tmp_path: Path):
 
     assert store.manual_scopes("qbittorrent") == frozenset({"tv", "movies"})
     assert store.manual_scopes("transmission") == frozenset({"archive"})
+
+
+def test_quarantine_hold_is_persisted_and_counted(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    store.quarantine_hold(
+        torrent_hash="held",
+        torrent_name="Suspicious release",
+        provider="qbittorrent",
+        scopes="tv",
+        reason="Blocked file type detected",
+        at="2026-09-05T00:00:00+00:00",
+    )
+
+    assert store.quarantine_count() == 1
+    row = store.quarantine_recent(1)[0]
+    assert row["torrent_hash"] == "held"
+    assert row["provider"] == "qbittorrent"
+    assert row["state"] == "held"
+    assert store.stats()["quarantined"] == 1
