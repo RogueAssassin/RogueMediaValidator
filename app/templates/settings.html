@@ -27,7 +27,7 @@
 
     <main class="settings-main">
       <section class="setup-hero">
-        <p class="eyebrow">0.9.0 operations control</p>
+        <p class="eyebrow">Operations control</p>
         <h1>Settings</h1>
         <p>Manage RMV scope, integrations, notifications, monitoring and audit lifecycle from one protected operator surface. Administrative access is protected by the credentials configured in <code>.env</code>.</p>
       </section>
@@ -100,7 +100,7 @@
       <section class="panel settings-summary">
         <div class="panel-title">
           <div>
-            <span class="section-label">0.7.0 quarantine</span>
+            <span class="section-label">Quarantine</span>
             <h2>Rejected payload handling</h2>
           </div>
           <span class="state {{ 'ok' if settings.quarantine_rejected else 'neutral' }}">{{ 'Hold instead of delete' if settings.quarantine_rejected else 'Standard removal path' }}</span>
@@ -114,7 +114,7 @@
       <section class="panel settings-summary">
         <div class="panel-title">
           <div>
-            <span class="section-label">0.8.0 media automation</span>
+            <span class="section-label">Media automation</span>
             <h2>Automation providers</h2>
           </div>
           <span class="state {{ 'ok' if automation_instances else 'neutral' }}">{{ automation_instances|length }} configured</span>
@@ -153,7 +153,7 @@
       <section class="panel settings-summary">
         <div class="panel-title">
           <div>
-            <span class="section-label">0.9.0 notifications</span>
+            <span class="section-label">Notifications</span>
             <h2>Operational notifications</h2>
           </div>
           <span class="state {{ 'ok' if notification_targets else 'neutral' }}">{{ notification_targets|length }} configured</span>
@@ -192,7 +192,7 @@
       <section class="panel settings-summary">
         <div class="panel-title">
           <div>
-            <span class="section-label">0.9.0 operations</span>
+            <span class="section-label">Operations</span>
             <h2>Health and audit lifecycle</h2>
           </div>
           <span class="state neutral">{{ settings.audit_retention_days }} day retention</span>
