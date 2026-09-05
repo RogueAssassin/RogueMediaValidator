@@ -15,8 +15,8 @@
 
 [![Release](https://img.shields.io/badge/RELEASE-0.5.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
-[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Amain)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
+[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
@@ -26,18 +26,17 @@ RogueMediaValidator (RMV) is a lightweight safety gate for automated torrent dow
 
 The validation engine is provider-neutral. Every torrent application is isolated behind a small adapter that normalizes torrents, files, lifecycle states, validation scopes, resume operations, and removal operations into the same RMV model.
 
-## Current release
+## Testing channel
 
-**v0.5.0** completes the common headless/container torrent-client set and removes the old qBittorrent-specific compatibility layer from the active architecture.
+This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`.
 
-Stable images:
+Testing image:
 
 ```text
-ghcr.io/rogueassassin/roguemediavalidator:latest
-ghcr.io/rogueassassin/roguemediavalidator:0.5.0
+ghcr.io/rogueassassin/roguemediavalidator:testing
 ```
 
-The permanent `testing` branch continues to publish `:testing` and versioned testing tags for the next development stage.
+Use the `testing` branch deployment files together with the `:testing` image so the Compose file, environment example and application build stay on the same channel. For production media stacks, use the `main` branch and `:latest` image.
 
 ## Supported torrent clients
 
@@ -81,9 +80,11 @@ For strongest pre-download protection, have automation add new downloads paused/
 
 ## First-run Installation
 
-A fresh instance has no torrent client selected.
+A fresh install is designed to be safe and simple: create the deployment files, **edit the `.env` before starting RMV**, start the container, then finish the torrent-client connection through the browser.
 
-Open:
+For most media-server owners, leave the torrent-client connection fields blank in `.env` and use the guided Installation page. The important first-run values to review are the published port, container image, shared Docker/Podman network, and dry-run setting.
+
+After the container starts, open:
 
 ```text
 http://localhost:7811
@@ -260,19 +261,74 @@ RMV does **not** mount Docker or Podman sockets and should never require:
 
 ## Quick install
 
+The commands below create a clean RMV deployment in `/opt/media-server/roguemediavalidator`.
+
+### 1. Download the deployment files
+
 ```bash
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
 chmod 600 .env
 ```
+
+### 2. Edit `.env` before the first start
+
+**Do not skip this step.** Open the environment file:
+
+```bash
+nano .env
+```
+
+For a normal guided installation, check these settings:
+
+```env
+RMV_HTTP_PORT=7811
+RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:testing
+RMV_NETWORK=media-net
+RMV_DRY_RUN=true
+
+RMV_TORRENT_CLIENT=
+RMV_TORRENT_URL=
+RMV_TORRENT_USERNAME=
+RMV_TORRENT_PASSWORD=
+```
+
+What to change:
+
+- **`RMV_HTTP_PORT`** — change only if port `7811` is already in use.
+- **`RMV_IMAGE`** — normally leave this unchanged; this README is configured for the **testing** channel.
+- **`RMV_NETWORK`** — set this to the existing Docker/Podman network used by your torrent client. `media-net` is only the default.
+- **`RMV_DRY_RUN=true`** — keep this enabled for the first install so RMV validates and records results without resuming or removing torrents.
+- **Torrent client fields** — leave these four values blank when using the browser Installation wizard. Advanced users may fill them in to manage the provider entirely through environment variables.
+
+In `nano`, save with **Ctrl+O**, press **Enter**, then exit with **Ctrl+X**.
+
+### 3. Make sure the shared network exists
+
+Use the **same network name you entered in `.env`**. If you kept the default `media-net`:
 
 Podman:
 
 ```bash
 podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
+```
+
+Docker:
+
+```bash
+docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
+```
+
+If your torrent client already uses another network, do not create `media-net`; set `RMV_NETWORK` to that existing network instead.
+
+### 4. Pull and start RMV
+
+Podman:
+
+```bash
 podman compose --env-file .env -f compose.yaml pull
 podman compose --env-file .env -f compose.yaml up -d
 ```
@@ -280,12 +336,23 @@ podman compose --env-file .env -f compose.yaml up -d
 Docker:
 
 ```bash
-docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
 docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-Then complete Installation at port 7811.
+### 5. Finish setup in the browser
+
+Open:
+
+```text
+http://YOUR-SERVER-IP:7811
+```
+
+For a local install, `http://localhost:7811` also works.
+
+Select your torrent client, enter its API/Web UI connection details, run **Test connection**, review discovered categories/labels/download paths, and save the setup.
+
+Keep RMV in dry-run until Diagnostics shows the correct client, scopes and expected validation results. When you are satisfied, edit `.env` again with `nano .env`, set `RMV_DRY_RUN=false`, and recreate the container so enforcement becomes active.
 
 ## Advanced environment-managed setup
 
