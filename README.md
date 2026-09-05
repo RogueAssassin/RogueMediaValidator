@@ -543,7 +543,7 @@ The provider layer is complete. Development now moves through staged operator, v
 | --- | --- |
 | **0.6.0** | Authenticated administration, UI-managed scopes, validation detail and operator safety |
 | **0.7.0** | Quarantine workflows and optional post-download media validation |
-| **0.8.0** | Radarr/Sonarr feedback, retry/blocklist workflow and source context |
+| **0.8.0** | Universal TV/movie automation integrations, including Radarr/Sonarr, provider-neutral feedback and retry/rejection workflows |
 | **0.9.0** | Notifications, RogueDashboard integration, health, audit retention and operational polish |
 | **0.9.x RC** | Feature freeze, upgrade/security testing, documentation and release hardening |
 | **1.0.0** | First production-ready stable contract |
