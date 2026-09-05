@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     remove_rejected: bool = True
     delete_rejected_data: bool = True
     auto_resume_valid: bool = True
+    quarantine_rejected: bool = False
 
     @staticmethod
     def _csv(value: str) -> frozenset[str]:
