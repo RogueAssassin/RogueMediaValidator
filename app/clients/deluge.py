@@ -164,6 +164,10 @@ class DelugeClient:
             if isinstance(item, dict)
         ]
 
+    async def pause(self, torrent_hash: str):
+        await self._ensure_daemon()
+        await self._rpc("core.pause_torrent", [torrent_hash])
+
     async def resume(self, torrent_hash: str):
         await self._ensure_daemon()
         await self._rpc("core.resume_torrent", [torrent_hash])
