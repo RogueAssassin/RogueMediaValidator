@@ -197,8 +197,12 @@
 
       cards.forEach(card => {
         card.addEventListener('click', () => {
-          cards.forEach(item => item.classList.remove('selected'));
+          cards.forEach(item => {
+            item.classList.remove('selected');
+            item.setAttribute('aria-pressed', 'false');
+          });
           card.classList.add('selected');
+          card.setAttribute('aria-pressed', 'true');
           provider = card.dataset.provider;
           selected.textContent = card.querySelector('strong').textContent;
           url.value = card.dataset.url || '';
