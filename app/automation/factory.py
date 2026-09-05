@@ -5,24 +5,6 @@ from .arr import ArrAutomationProvider
 from .webhook import WebhookAutomationProvider
 
 
-AUTOMATION_PROVIDER_META = [
-    {
-        "id": "radarr",
-        "name": "Radarr",
-        "description": "Movie automation via the provider-neutral Arr queue adapter.",
-    },
-    {
-        "id": "sonarr",
-        "name": "Sonarr",
-        "description": "TV automation via the provider-neutral Arr queue adapter.",
-    },
-    {
-        "id": "webhook",
-        "name": "Generic Webhook",
-        "description": "Universal JSON rejection event for compatible/custom automation.",
-    },
-]
-
 
 def parse_automation_configs(raw: str) -> list[dict]:
     if not raw.strip():
