@@ -10,18 +10,19 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RMV">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RogueMediaValidator">
         <div class="brand-copy">
           <strong>RogueMediaValidator</strong>
           <span>Validate. Protect. Automate.</span>
         </div>
       </div>
 
-      <div class="topbar-actions">
-        <span class="health-chip {{ health.status }}">
+      <nav class="topbar-actions" aria-label="Primary navigation">
+        <span class="health-chip {{ health.status }}" role="status" aria-live="polite">
           <i></i>
           {{ 'Connected' if health.torrent_client_connected else health.status|replace('_', ' ')|title }}
         </span>
@@ -31,11 +32,10 @@
         <span class="version">v{{ version }}</span>
         <a class="button secondary" href="/settings">Settings</a>
         <a class="button secondary" href="/setup">Installation</a>
-        <a class="button secondary" href="/api/diagnostics" target="_blank" rel="noopener">Diagnostics</a>
-      </div>
+      </nav>
     </header>
 
-    <main>
+    <main id="main-content">
       <section class="hero">
         <div>
           <p class="eyebrow">Torrent payload validation</p>
@@ -184,6 +184,7 @@
             <span class="section-label">Action states</span>
             <p>{{ settings.action_states | join(', ') }}</p>
             <small>Completed, seeding and upload-only torrents are inspection-only and are not destructively actioned.</small>
+            <p><a class="text-link" href="/api/diagnostics" target="_blank" rel="noopener">Open diagnostics JSON</a></p>
           </div>
         </div>
       </details>
