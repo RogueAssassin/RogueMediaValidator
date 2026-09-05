@@ -65,7 +65,7 @@ def test_dashboard_template_renders_with_generic_client_context():
         health=health,
         stats=stats,
         recent=recent,
-        version="0.5.0",
+        version="1.0.0",
     )
 
     assert "RogueMediaValidator" in rendered
@@ -148,7 +148,7 @@ def test_setup_template_lists_all_supported_providers():
     ]
 
     rendered = template.render(
-        version="0.5.0",
+        version="1.0.0",
         providers=providers,
         current=None,
         configured=False,
