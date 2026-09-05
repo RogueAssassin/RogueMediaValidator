@@ -41,6 +41,23 @@ class AutomationManager:
     async def report_rejection(self, event: dict) -> list[dict]:
         results = []
         for provider in self.providers:
+            torrent_hash = str(event.get("torrent_hash", ""))
+            if self.store.automation_event_reported(
+                torrent_hash=torrent_hash,
+                provider=provider.provider_id,
+                instance=provider.instance_name,
+                event_type="rejected",
+            ):
+                results.append(
+                    {
+                        "provider": provider.provider_id,
+                        "instance": provider.instance_name,
+                        "status": "skipped",
+                        "reason": "rejection feedback already reported",
+                    }
+                )
+                continue
+
             try:
                 result = await provider.report_rejection(event)
                 outcome = {
@@ -61,7 +78,7 @@ class AutomationManager:
                 )
 
             self.store.save_automation_event(
-                torrent_hash=str(event.get("torrent_hash", "")),
+                torrent_hash=torrent_hash,
                 provider=outcome["provider"],
                 instance=outcome["instance"],
                 event_type="rejected",
