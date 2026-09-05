@@ -46,6 +46,18 @@ class Store:
                         value TEXT NOT NULL
                     )
                 """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS quarantine (
+                        torrent_hash TEXT PRIMARY KEY,
+                        torrent_name TEXT NOT NULL,
+                        provider TEXT NOT NULL,
+                        scopes TEXT NOT NULL,
+                        reason TEXT NOT NULL,
+                        state TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                """)
                 columns = {
                     row[1] for row in db.execute("PRAGMA table_info(validations)").fetchall()
                 }
@@ -222,6 +234,49 @@ class Store:
             ).fetchone()
         return bool(row and row[0])
 
+    def quarantine_hold(
+        self,
+        *,
+        torrent_hash: str,
+        torrent_name: str,
+        provider: str,
+        scopes: str,
+        reason: str,
+        at: str,
+    ):
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO quarantine
+                (torrent_hash,torrent_name,provider,scopes,reason,state,created_at,updated_at)
+                VALUES (?,?,?,?,?,'held',?,?)
+                ON CONFLICT(torrent_hash) DO UPDATE SET
+                    torrent_name=excluded.torrent_name,
+                    provider=excluded.provider,
+                    scopes=excluded.scopes,
+                    reason=excluded.reason,
+                    state='held',
+                    updated_at=excluded.updated_at
+                """,
+                (torrent_hash, torrent_name, provider, scopes, reason, at, at),
+            )
+
+    def quarantine_recent(self, limit: int = 50) -> list[dict]:
+        with self._connect() as db:
+            db.row_factory = sqlite3.Row
+            rows = db.execute(
+                "SELECT * FROM quarantine ORDER BY updated_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def quarantine_count(self) -> int:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT COUNT(*) FROM quarantine WHERE state='held'"
+            ).fetchone()
+        return int(row[0] if row else 0)
+
     def recent(self, limit: int = 50) -> list[dict]:
         with self._connect() as db:
             db.row_factory = sqlite3.Row
@@ -252,4 +307,5 @@ class Store:
             "enforced": enforced,
             "action_failures": action_failures,
             "limited_actions": limited_actions,
+            "quarantined": self.quarantine_count(),
         }
