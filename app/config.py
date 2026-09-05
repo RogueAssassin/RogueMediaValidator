@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
     automation_providers_json: str = ""
 
-        notification_targets_json: str = ""
+    notification_targets_json: str = ""
     audit_retention_days: int = 90
     audit_retention_max_records: int = 10000
 
