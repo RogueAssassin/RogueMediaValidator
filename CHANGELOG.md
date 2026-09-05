@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.6.0 - testing - 2026-09-05
+
+Administration and operator-control development milestone.
+
+### Planned for this testing cycle
+
+- Authenticated administrative/settings area.
+- UI-managed provider scopes with explicit add/remove control.
+- Clear environment-versus-persisted configuration ownership.
+- Structured per-file validation reasons in the UI and API.
+- Improved validation-history filtering and detail.
+- Safer confirmation flows for destructive settings.
+- Clearer dry-run/enforcement state and activation guidance.
+- Configuration validation with actionable operator errors.
+- Upgrade-safe persistence and schema migration coverage.
+- Continued regression coverage for every supported torrent provider.
+
+### Road to 1.0
+
+- 0.7.0: quarantine and optional deep/post-download media validation.
+- 0.8.0: provider-neutral TV/movie automation integrations, with Radarr and Sonarr as first-class providers rather than hard-coded core dependencies.
+- 0.9.0: notifications, RogueDashboard/health integration, audit lifecycle and operational polish.
+- 0.9.x: release-candidate hardening, migration/security testing and feature freeze.
+- 1.0.0: stable production contract.
+
+### Safety
+
+- 0.6.0 testing continues to default to dry-run.
+- Scope management must fail closed and must not silently broaden enforcement.
+- Existing torrent-provider behavior remains provider-neutral.
+
+
 ## 0.5.0 - 2026-09-03
 
 Complete headless torrent-provider support and compatibility cleanup.
