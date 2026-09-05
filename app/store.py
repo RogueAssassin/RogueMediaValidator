@@ -309,6 +309,26 @@ class Store:
                 (torrent_hash, provider, instance, event_type, status, detail),
             )
 
+    def automation_event_reported(
+        self,
+        *,
+        torrent_hash: str,
+        provider: str,
+        instance: str,
+        event_type: str,
+    ) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                """
+                SELECT 1 FROM automation_events
+                WHERE torrent_hash=? AND provider=? AND instance=? AND event_type=?
+                  AND status='reported'
+                LIMIT 1
+                """,
+                (torrent_hash, provider, instance, event_type),
+            ).fetchone()
+        return row is not None
+
     def automation_events(self, limit: int = 50) -> list[dict]:
         with self._connect() as db:
             db.row_factory = sqlite3.Row
