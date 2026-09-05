@@ -83,6 +83,11 @@ class QBittorrentClient:
         )
         return r.json()
 
+    async def pause(self, torrent_hash: str):
+        await self._request(
+            "POST", "/api/v2/torrents/stop", data={"hashes": torrent_hash}
+        )
+
     async def resume(self, torrent_hash: str):
         await self._request(
             "POST", "/api/v2/torrents/start", data={"hashes": torrent_hash}
