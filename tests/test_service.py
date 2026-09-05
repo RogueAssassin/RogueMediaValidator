@@ -226,3 +226,91 @@ async def test_provider_without_data_delete_records_limited_action(tmp_path):
     assert row["action"] == "delete"
     assert row["action_status"] == "limited"
     assert "cannot delete local payload data" in row["action_error"]
+
+
+class QuarantineClient:
+    provider_id = "qbittorrent"
+    display_name = "qBittorrent"
+    scope_name = "categories"
+    supports_delete_data = True
+
+    def __init__(self):
+        self.paused = []
+        self.deleted = []
+
+    async def close(self):
+        return None
+
+    async def version(self):
+        return "5.2.3"
+
+    async def scopes(self):
+        return ["tv"]
+
+    async def torrents(self):
+        return [{
+            "hash": "quarantine-me",
+            "name": "Unsafe release.exe",
+            "_scopes": ["tv"],
+            "state": "downloading",
+        }]
+
+    async def files(self, torrent_hash):
+        return [{"name": "Unsafe release.exe", "size": 1000}]
+
+    async def pause(self, torrent_hash):
+        self.paused.append(torrent_hash)
+
+    async def resume(self, torrent_hash):
+        raise AssertionError("blocked torrent should not resume")
+
+    async def delete(self, torrent_hash, delete_files):
+        self.deleted.append((torrent_hash, delete_files))
+
+
+@pytest.mark.asyncio
+async def test_quarantine_holds_rejected_torrent_instead_of_deleting(tmp_path):
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv",
+        dry_run=False,
+        quarantine_rejected=True,
+        remove_rejected=True,
+        delete_rejected_data=True,
+    )
+    store = Store(tmp_path / "rmv.db")
+    client = QuarantineClient()
+    service = ValidationService(cfg, store, client, "qbittorrent")
+
+    await service.run_once()
+
+    assert client.paused == ["quarantine-me"]
+    assert client.deleted == []
+    row = store.recent(1)[0]
+    assert row["enforced"] == 1
+    assert row["action"] == "quarantine"
+    assert row["action_status"] == "held"
+    held = store.quarantine_recent(1)[0]
+    assert held["torrent_hash"] == "quarantine-me"
+    assert held["state"] == "held"
+
+
+@pytest.mark.asyncio
+async def test_quarantine_is_opt_in_and_existing_delete_path_remains_default(tmp_path):
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv",
+        dry_run=False,
+        quarantine_rejected=False,
+        remove_rejected=True,
+        delete_rejected_data=True,
+    )
+    store = Store(tmp_path / "rmv.db")
+    client = QuarantineClient()
+    service = ValidationService(cfg, store, client, "qbittorrent")
+
+    await service.run_once()
+
+    assert client.paused == []
+    assert client.deleted == [("quarantine-me", True)]
+    assert store.quarantine_count() == 0
