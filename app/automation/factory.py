@@ -1,4 +1,4 @@
-import json
+from json import loads
 
 from .arr import ArrAutomationProvider
 from .webhook import WebhookAutomationProvider
@@ -26,9 +26,9 @@ AUTOMATION_PROVIDER_META = [
 def parse_automation_configs(raw: str) -> list[dict]:
     if not raw.strip():
         return []
-    payload = json.loads(raw)
+    payload = loads(raw)
     if not isinstance(payload, list):
-        raise ValueError("RMV_AUTOMATION_PROVIDERS_JSON must contain a JSON array")
+        raise TypeError("RMV_AUTOMATION_PROVIDERS_JSON must contain a JSON array")
     return [item for item in payload if isinstance(item, dict)]
 
 
