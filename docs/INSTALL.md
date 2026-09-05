@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator 0.7.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
+RogueMediaValidator 0.8.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
 
 ## 1. Create the deployment
 
@@ -36,6 +36,7 @@ Set the shared network and keep dry-run enabled:
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
 RMV_QUARANTINE_REJECTED=false
+RMV_AUTOMATION_PROVIDERS_JSON=
 RMV_SETUP_UNLOCK=false
 RMV_ADMIN_USERNAME=operator
 RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
@@ -195,6 +196,30 @@ http://YOUR-SERVER-IP:7811/api/quarantine
 ```
 
 The dashboard also reports the current held count. Set `RMV_QUARANTINE_REJECTED=false` to return to the existing removal behavior.
+
+## 0.8.0 universal media automation
+
+The automation layer is optional and supports multiple instances. Configure it in `.env`.
+
+Radarr + Sonarr example:
+
+```env
+RMV_AUTOMATION_PROVIDERS_JSON='[{"provider":"radarr","name":"Movies","url":"http://radarr:7878","api_key":"RADARR-API-KEY"},{"provider":"sonarr","name":"TV","url":"http://sonarr:8989","api_key":"SONARR-API-KEY"}]'
+```
+
+Separate Sonarr/Radarr instances can be added as additional objects in the same array.
+
+For another/custom TV or movie automation system, use the generic webhook provider:
+
+```env
+RMV_AUTOMATION_PROVIDERS_JSON='[{"provider":"webhook","name":"Custom automation","url":"http://automation:9000/rmv","token":"OPTIONAL-TOKEN"}]'
+```
+
+After editing `.env`, recreate RMV, open **Settings**, and use **Test integrations**.
+
+Radarr/Sonarr feedback matches the torrent hash against the upstream queue `downloadId`. RMV requests upstream blocklisting/retry handling but uses `removeFromClient=false`, keeping the torrent-client action under RMV control.
+
+Automation feedback is only sent after a rejected torrent has an RMV enforcement outcome such as a successful delete, limited delete, or quarantine hold. Provider failures are audited and isolated.
 
 ## Advanced environment configuration
 
