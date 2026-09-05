@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
     automation_providers_json: str = ""
 
+    # 0.9.0 operations / notification layer.
+    notification_targets_json: str = ""
+    audit_retention_days: int = 90
+    audit_retention_max_records: int = 10000
+
     @staticmethod
     def _csv(value: str) -> frozenset[str]:
         return frozenset(x.strip().lower().lstrip(".") for x in value.split(",") if x.strip())
