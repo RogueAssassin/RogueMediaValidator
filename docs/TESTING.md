@@ -2,7 +2,7 @@
 
 Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidator:testing`.
 
-## 0.7.0 quarantine and hold test plan
+## 0.8.0 universal media automation test plan
 
 Every supported provider must pass:
 
@@ -22,6 +22,13 @@ Every supported provider must pass:
 14. Held torrents appear in `/api/quarantine` and the dashboard count.
 15. Quarantine records preserve provider, scope and rejection reason.
 16. Completed/seeding torrents stay inspection-only.
+17. Radarr/Sonarr connection tests detect application version.
+18. Torrent hash matches automation queue `downloadId` case-insensitively.
+19. Upstream rejection uses blocklist/retry feedback with `removeFromClient=false`.
+20. Generic webhook receives the provider-neutral `rmv.rejected` event.
+21. Multiple automation instances can coexist.
+22. A failed automation provider does not interrupt other providers or RMV enforcement.
+23. Successfully reported feedback is deduplicated per hash/provider/instance.
 
 ## qBittorrent
 
@@ -84,6 +91,22 @@ Verify:
 - `aria2.remove`;
 - requested payload deletion records `action_status=limited`.
 
+## Media automation
+
+Verify:
+
+- no automation providers configured remains a valid/disabled state;
+- invalid JSON configuration is surfaced without crashing the RMV validator;
+- Radarr API-key authentication and status test;
+- Sonarr API-key authentication and status test;
+- queue correlation by `downloadId`;
+- blocklist feedback without duplicate torrent-client removal;
+- generic webhook optional Bearer token;
+- per-instance audit events;
+- provider failure isolation;
+- feedback deduplication;
+- Settings integration test action.
+
 ## Shared regressions
 
 - executable/script blocking;
@@ -116,5 +139,5 @@ Testing publishes:
 
 ```text
 :testing
-:0.7.0-testing
+:0.8.0-testing
 ```
