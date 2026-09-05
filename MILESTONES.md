@@ -1,57 +1,157 @@
-# RogueMediaValidator milestones
+# RogueMediaValidator roadmap
 
-## 0.1.x — Core validation
+RogueMediaValidator is moving from a provider-complete validator in 0.5.x toward a release-ready media safety service in 1.0.0.
 
-- strict payload validator ✅
-- qBittorrent first integration ✅
-- dry-run/enforcement ✅
-- SQLite audit ✅
+The permanent `testing` branch is where each milestone is developed and validated. Features should only move to `main` after their milestone is stable, upgrade-safe, documented, and covered by regression tests.
 
-## 0.2.x — Operational safety
+## Completed foundation
 
-- policy fingerprints ✅
-- structured action outcomes ✅
-- single Docker/Podman Compose ✅
-- SQLite hardening ✅
+### 0.1.x — Core validation ✅
+- strict torrent payload validation
+- qBittorrent integration
+- dry-run and enforcement modes
+- SQLite audit history
 
-## 0.3.x — Scope automation and dashboard
+### 0.2.x — Operational safety ✅
+- validation policy fingerprints
+- structured enforcement outcomes
+- shared Docker/Podman Compose deployment
+- SQLite hardening and migrations
 
-- scope discovery/bootstrap ✅
-- persisted scope isolation ✅
-- simplified dashboard ✅
+### 0.3.x — Scope automation and dashboard ✅
+- scope discovery and one-time bootstrap
+- persisted scope isolation
+- simplified operational dashboard
 
-## 0.4.x — Multi-client foundation
+### 0.4.x — Multi-client foundation ✅
+- provider-neutral torrent-client interface
+- guided browser Installation
+- qBittorrent and Transmission adapters
+- setup testing and configuration lock
 
-- provider interface ✅
-- browser Installation ✅
-- qBittorrent ✅
-- Transmission ✅
-- setup test/lock ✅
+### 0.5.x — Headless torrent-provider coverage ✅
+- Deluge
+- rTorrent / ruTorrent
+- aria2
+- provider capability reporting
+- limited-delete auditing
+- legacy qBittorrent compatibility cleanup
+- all-provider regression coverage
 
-## 0.5.x — Complete headless torrent-provider set
+---
 
-- Deluge ✅
-- rTorrent / ruTorrent ✅
-- aria2 ✅
-- provider capability reporting ✅
-- limited-delete auditing ✅
-- removal of legacy qBittorrent compatibility code ✅
-- all-provider CI regression tests ✅
+## 0.6.0 — Administration and operator control
 
-### Remaining 0.5.x
+**Goal:** make RMV comfortable to operate day-to-day without requiring routine `.env` editing.
 
-- authenticated admin configuration
-- UI-managed scope selection
-- structured per-file reasons
-- quarantine workflow
-- post-download ffprobe/signature validation
+Planned:
+- authenticated administrative/settings area
+- UI-managed scope selection after initial discovery
+- add/remove managed scopes without silently enrolling new discoveries
+- clear environment-vs-persisted configuration ownership
+- structured per-file validation reasons in the UI/API
+- improved validation history filtering and detail
+- safer confirmation flows for destructive settings
+- clearer dry-run/enforcement state and activation guidance
+- configuration validation and actionable error messages
+- upgrade-safe persistence/schema migration tests
+- refreshed README, Installation and Testing documentation
 
-## 0.6.x — Arr and Rogue ecosystem
+**0.6.0 exit criteria:**
+- fresh Docker and Podman installs pass
+- upgrades from 0.5.0 preserve configuration/history
+- every supported torrent provider still passes regression tests
+- no administrative secret is exposed by diagnostics/API
+- scope changes cannot accidentally broaden enforcement
+- CI and container builds pass on testing
 
-- Radarr/Sonarr failed-download feedback
-- retry/blacklist workflow
-- source/indexer context
-- notification/webhook events
+## 0.7.0 — Quarantine and deep media validation
+
+**Goal:** move beyond torrent filename/metadata policy into optional post-download media verification.
+
+Planned:
+- quarantine workflow for rejected or suspicious payloads
+- configurable quarantine behavior and retention
+- optional post-download ffprobe validation
+- media/container signature checks where practical
+- distinguish pre-download metadata validation from post-download content validation
+- structured quarantine reasons and lifecycle states
+- retry/recheck workflow after policy changes or operator review
+- disk/path safety checks and bounded processing
+- UI visibility for quarantined and rechecked items
+
+**Exit criteria:** deep validation is opt-in, bounded, auditable, and cannot silently delete data outside configured RMV behavior.
+
+## 0.8.0 — Radarr, Sonarr and automation feedback
+
+**Goal:** let RMV participate cleanly in automated media acquisition workflows.
+
+Planned:
+- Radarr integration
+- Sonarr integration
+- failed-download/rejection feedback
+- retry and blocklist workflow where supported
+- source/indexer context attached to validation records
+- correlation between torrent, Arr download and RMV decision
+- safe handling when Arr services are unavailable
+- integration diagnostics and test actions
+- duplicate/retry loop protection
+
+**Exit criteria:** a rejected download can be reported upstream without creating uncontrolled retry loops or breaking standalone RMV operation.
+
+## 0.9.0 — Notifications, ecosystem and operations
+
+**Goal:** make RMV observable and easy to integrate into a complete media stack.
+
+Planned:
+- notification/webhook events for approved, rejected, failed and limited actions
 - RogueDashboard integration
-- Uptime Kuma/RogueDashboard health integration
-- audit export/retention
+- health/status integration suitable for Uptime Kuma and similar monitors
+- audit export
+- configurable audit retention/cleanup
+- operational metrics and clearer health/readiness reporting
+- backup/restore guidance for RMV persistent state
+- UI/UX accessibility and responsive-layout pass
+- performance profiling for large torrent histories and busy clients
+
+**Exit criteria:** integrations are optional, failures are isolated, and long-running installations remain maintainable.
+
+## 0.9.x — Release-candidate hardening
+
+**Goal:** freeze major features and prove the 1.0 contract.
+
+Planned:
+- no new major features after feature freeze
+- complete Docker and Podman clean-install matrix
+- upgrade testing from supported pre-1.0 releases
+- all-provider live/regression validation
+- database migration and recovery testing
+- security review of authentication, credentials and destructive actions
+- dependency and container-image review
+- API/configuration compatibility review
+- documentation audit from a first-time media-owner perspective
+- troubleshooting and recovery procedures
+- release candidate images/tags
+- fix-only RC cycle until release gates pass
+
+## 1.0.0 — Production release
+
+**Goal:** declare the first stable, documented and supportable RogueMediaValidator contract.
+
+Release requirements:
+- qBittorrent, Transmission, Deluge, rTorrent/ruTorrent and aria2 provider support verified
+- Docker and Podman installation verified
+- safe first-run wizard and dry-run defaults
+- authenticated administration
+- UI-managed scopes
+- clear validation reasons and audit trail
+- optional quarantine/deep validation
+- stable Radarr/Sonarr feedback integrations
+- optional notifications and Rogue ecosystem integration
+- documented backup, restore, upgrade and rollback paths
+- stable configuration/API behavior documented
+- clean CI/container builds for release commit
+- release notes and migration guide completed
+- no known critical data-loss, authentication or enforcement defects
+
+After 1.0.0, breaking configuration/API changes should be reserved for future major versions; 1.x development should prefer backwards-compatible features and migrations.
