@@ -45,6 +45,7 @@
           <div><dt>Provider config</dt><dd>{{ client_config.source if client_config else 'none' }}</dd></div>
           <div><dt>Scope source</dt><dd>{{ health.diagnostics.scope_source | replace('_', ' ') | title }}</dd></div>
           <div><dt>Mode</dt><dd>{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</dd></div>
+          <div><dt>Quarantine</dt><dd>{{ 'Enabled' if settings.quarantine_rejected else 'Disabled' }}</dd></div>
         </dl>
       </section>
 
@@ -94,6 +95,20 @@
             <div id="scope-result" class="setup-result" hidden></div>
           </form>
         {% endif %}
+      </section>
+
+      <section class="panel settings-summary">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">0.7.0 quarantine</span>
+            <h2>Rejected payload handling</h2>
+          </div>
+          <span class="state {{ 'ok' if settings.quarantine_rejected else 'neutral' }}">{{ 'Hold instead of delete' if settings.quarantine_rejected else 'Standard removal path' }}</span>
+        </div>
+        <p class="settings-help">
+          Quarantine is opt-in through <code>RMV_QUARANTINE_REJECTED=true</code>. When enabled, rejected actionable torrents are paused/stopped and recorded as held instead of being deleted. This preserves the payload for operator review.
+        </p>
+        <a class="button secondary" href="/api/quarantine" target="_blank" rel="noopener">View quarantine JSON</a>
       </section>
 
       <section class="panel setup-help">
