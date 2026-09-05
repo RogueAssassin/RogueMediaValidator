@@ -3,7 +3,7 @@
 <table>
   <tr>
     <td width="220" align="center">
-      <img src="https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/app/static/icons/roguemediavalidator-approved-128.png" width="128" height="128" alt="RogueMediaValidator logo">
+      <img src="https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/app/static/icons/roguemediavalidator-approved-128.png" width="128" height="128" alt="RogueMediaValidator logo">
     </td>
     <td align="left">
       <h1>RogueMediaValidator</h1>
@@ -13,9 +13,9 @@
   </tr>
 </table>
 
-[![Release](https://img.shields.io/badge/RELEASE-1.0.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator)
-[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Amain)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Amain)
+[![Testing](https://img.shields.io/badge/TESTING-1.1.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
@@ -62,8 +62,8 @@ When a provider cannot guarantee local payload deletion, RMV records a limited a
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
 chmod 600 .env
 ```
 
@@ -78,7 +78,7 @@ nano .env
 At minimum, review:
 
 ```env
-RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:latest
+RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:testing
 RMV_HTTP_PORT=7811
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
