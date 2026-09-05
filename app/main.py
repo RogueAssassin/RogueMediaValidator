@@ -1,11 +1,13 @@
 import asyncio
+import csv
 import logging
 import secrets
 from contextlib import asynccontextmanager, suppress
+from io import StringIO
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,6 +18,7 @@ from .automation import AutomationManager, build_automation_providers
 from .automation.factory import AUTOMATION_PROVIDER_META
 from .clients.factory import CLIENT_PROVIDERS, create_client
 from .config import get_settings
+from .notifications import NotificationManager, build_notification_targets
 from .service import ValidationService
 from .store import Store
 
@@ -38,6 +41,19 @@ except (ValueError, TypeError) as exc:
         "Invalid media automation configuration: %s", exc
     )
     automation = AutomationManager([], store)
+notification_config_error: str | None = None
+try:
+    notifications = NotificationManager(
+        build_notification_targets(settings.notification_targets_json),
+        store,
+    )
+except (ValueError, TypeError) as exc:
+    notification_config_error = str(exc)
+    logging.getLogger("rmv.notifications").error(
+        "Invalid notification configuration: %s", exc
+    )
+    notifications = NotificationManager([], store)
+
 admin_security = HTTPBasic(auto_error=False)
 
 
@@ -124,6 +140,7 @@ service = ValidationService(
     initial_client,
     initial_provider,
     automation=automation,
+    notifications=notifications,
 )
 
 
@@ -246,6 +263,16 @@ async def settings_page(
                 for provider in automation.providers
             ],
             "automation_stats": store.automation_stats(),
+            "notification_config_error": notification_config_error,
+            "notification_targets": [
+                {
+                    "provider": target.target_id,
+                    "name": target.display_name,
+                    "events": sorted(target.events),
+                }
+                for target in notifications.targets
+            ],
+            "notification_stats": store.notification_stats(),
         },
     )
 
@@ -374,6 +401,20 @@ async def admin_settings(_admin: Annotated[str, Depends(require_admin)]):
         "environment_scopes": sorted(settings.scopes),
         "managed_scopes": sorted(service.managed_scopes),
         "discovered_scopes": service.discovered_scopes,
+        "notifications": {
+            "configured": notifications.configured,
+            "config_error": notification_config_error,
+            "targets": [
+                {
+                    "provider": target.target_id,
+                    "name": target.display_name,
+                    "events": sorted(target.events),
+                }
+                for target in notifications.targets
+            ],
+            "stats": store.notification_stats(),
+            "last_results": notifications.last_results,
+        },
         "media_automation": {
             "configured": automation.configured,
             "config_error": automation_config_error,
@@ -452,6 +493,128 @@ async def automation_events(
     limit: int = 50,
 ):
     return store.automation_events(max(1, min(limit, 500)))
+
+
+@app.post("/api/admin/notifications/test")
+async def notifications_test(_admin: Annotated[str, Depends(require_admin)]):
+    if notification_config_error:
+        raise HTTPException(status_code=400, detail=notification_config_error)
+    return {
+        "ok": True,
+        "configured": notifications.configured,
+        "results": await notifications.test_all(),
+    }
+
+
+@app.get("/api/notifications/events")
+async def notification_events(
+    _admin: Annotated[str, Depends(require_admin)],
+    limit: int = 50,
+):
+    return store.notification_events(max(1, min(limit, 500)))
+
+
+@app.post("/api/admin/audit/prune")
+async def audit_prune(_admin: Annotated[str, Depends(require_admin)]):
+    result = store.prune_audit(
+        retention_days=max(0, settings.audit_retention_days),
+        max_records=max(0, settings.audit_retention_max_records),
+    )
+    service.last_audit_prune = result
+    return {"ok": True, **result}
+
+
+@app.get("/api/admin/audit/export.csv")
+async def audit_export_csv(
+    _admin: Annotated[str, Depends(require_admin)],
+    limit: int = 10000,
+):
+    rows = store.export_audit(max(1, min(limit, 50000)))
+    buffer = StringIO()
+    if rows:
+        writer = csv.DictWriter(buffer, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="rmv-audit.csv"'},
+    )
+
+
+@app.get("/api/admin/audit/export.json")
+async def audit_export_json(
+    _admin: Annotated[str, Depends(require_admin)],
+    limit: int = 10000,
+):
+    return store.export_audit(max(1, min(limit, 50000)))
+
+
+@app.get("/healthz")
+async def liveness():
+    return {"status": "ok", "service": "RogueMediaValidator", "version": __version__}
+
+
+@app.get("/readyz")
+async def readiness():
+    ready = bool(
+        service.configured
+        and service.last_success_at
+        and not service.last_error
+        and service.managed_scopes
+    )
+    payload = {
+        "status": "ready" if ready else "not_ready",
+        "version": __version__,
+        "configured": service.configured,
+        "connected": bool(service.last_success_at and not service.last_error),
+        "managed_scopes": len(service.managed_scopes),
+        "last_success_at": service.last_success_at,
+        "last_error": service.last_error,
+    }
+    if ready:
+        return payload
+    return JSONResponse(status_code=503, content=payload)
+
+
+@app.get("/api/status")
+async def integration_status():
+    stats = store.stats()
+    return {
+        "service": "RogueMediaValidator",
+        "version": __version__,
+        "status": health_payload()["status"],
+        "ready": bool(
+            service.configured
+            and service.last_success_at
+            and not service.last_error
+            and service.managed_scopes
+        ),
+        "mode": "dry-run" if settings.dry_run else "enforcing",
+        "torrent_client": service.client_name or None,
+        "torrent_client_name": service.display_name,
+        "connected": bool(service.last_success_at and not service.last_error),
+        "managed_scope_count": len(service.managed_scopes),
+        "quarantined": store.quarantine_count(),
+        "validations": {
+            "total": stats["total"],
+            "approved": stats["approved"],
+            "blocked": stats["blocked"],
+            "action_failures": stats["action_failures"],
+            "limited_actions": stats["limited_actions"],
+        },
+        "automation": {
+            "configured": automation.configured,
+            "instances": len(automation.providers),
+            "failed_feedback": store.automation_stats()["failed"],
+        },
+        "notifications": {
+            "configured": notifications.configured,
+            "targets": len(notifications.targets),
+            "failed_deliveries": store.notification_stats()["failed"],
+        },
+        "last_success_at": service.last_success_at,
+    }
 
 
 @app.get("/api/health")
