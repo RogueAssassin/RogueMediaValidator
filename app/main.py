@@ -15,7 +15,6 @@ from pydantic import BaseModel
 
 from . import __version__
 from .automation import AutomationManager, build_automation_providers
-from .automation.factory import AUTOMATION_PROVIDER_META
 from .clients.factory import CLIENT_PROVIDERS, create_client
 from .config import get_settings
 from .notifications import NotificationManager, build_notification_targets
@@ -252,7 +251,6 @@ async def settings_page(
             "scope_locked": bool(settings.scopes),
             "admin_username": settings.admin_username,
             "client_config": public_client_config(),
-            "automation_providers": AUTOMATION_PROVIDER_META,
             "automation_config_error": automation_config_error,
             "automation_instances": [
                 {
@@ -262,7 +260,6 @@ async def settings_page(
                 }
                 for provider in automation.providers
             ],
-            "automation_stats": store.automation_stats(),
             "notification_config_error": notification_config_error,
             "notification_targets": [
                 {
@@ -272,7 +269,6 @@ async def settings_page(
                 }
                 for target in notifications.targets
             ],
-            "notification_stats": store.notification_stats(),
         },
     )
 
