@@ -2,7 +2,7 @@
 
 Use the permanent `testing` branch and `ghcr.io/rogueassassin/roguemediavalidator:testing`.
 
-## 0.5.0 provider-completion test plan
+## 0.7.0 quarantine and hold test plan
 
 Every supported provider must pass:
 
@@ -17,8 +17,11 @@ Every supported provider must pass:
 9. Torrent metadata is normalized.
 10. File metadata reaches the shared validator.
 11. Approved stopped downloads resume when enforcement is enabled.
-12. Blocked actionable torrents are removed when enforcement is enabled.
-13. Completed/seeding torrents stay inspection-only.
+12. With quarantine disabled, blocked actionable torrents follow the existing removal behavior.
+13. With `RMV_QUARANTINE_REJECTED=true`, blocked actionable torrents are paused/stopped and are not removed.
+14. Held torrents appear in `/api/quarantine` and the dashboard count.
+15. Quarantine records preserve provider, scope and rejection reason.
+16. Completed/seeding torrents stay inspection-only.
 
 ## qBittorrent
 
@@ -26,7 +29,7 @@ Verify:
 
 - Web UI login/session recovery;
 - categories;
-- v5 start endpoint;
+- v5 start/stop endpoints;
 - delete with optional data deletion.
 
 ## Transmission
@@ -37,7 +40,7 @@ Verify:
 - modern JSON-RPC;
 - legacy RPC fallback;
 - labels and multi-label matching;
-- torrent start/remove;
+- torrent start/stop/remove;
 - local data removal.
 
 ## Deluge
@@ -50,7 +53,7 @@ Verify:
 - label scope;
 - download-location fallback scope;
 - file retrieval;
-- resume;
+- pause/resume;
 - remove with data.
 
 ## rTorrent / ruTorrent
@@ -64,7 +67,7 @@ Verify:
 - `custom1` label;
 - directory fallback;
 - `f.multicall`;
-- `d.start`;
+- `d.start` / `d.stop`;
 - `d.erase`;
 - requested payload deletion records `action_status=limited`.
 
@@ -77,7 +80,7 @@ Verify:
 - active/waiting/stopped enumeration;
 - download-directory scopes;
 - file metadata;
-- `aria2.unpause`;
+- `aria2.pause` / `aria2.unpause`;
 - `aria2.remove`;
 - requested payload deletion records `action_status=limited`.
 
@@ -91,6 +94,8 @@ Verify:
 - no silent new-scope enrolment;
 - failed action persistence;
 - limited-action persistence;
+- quarantine persistence and opt-in precedence;
+- explicit empty UI scope remains fail-closed;
 - setup password not returned by diagnostics;
 - template render tests;
 - one Docker/Podman Compose file;
@@ -111,5 +116,5 @@ Testing publishes:
 
 ```text
 :testing
-:0.5.0-testing
+:0.7.0-testing
 ```
