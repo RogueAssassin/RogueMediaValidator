@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator 0.6.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
+RogueMediaValidator 0.7.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
 
 ## 1. Create the deployment
 
@@ -35,6 +35,7 @@ Set the shared network and keep dry-run enabled:
 ```env
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
+RMV_QUARANTINE_REJECTED=false
 RMV_SETUP_UNLOCK=false
 RMV_ADMIN_USERNAME=operator
 RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
@@ -175,6 +176,25 @@ http://YOUR-SERVER-IP:7811/settings
 The browser will request the admin credentials. When `RMV_TORRENT_SCOPES` is blank, the Settings page can explicitly add or remove managed scopes. An empty selection is saved as a deliberate fail-closed state and is not automatically repopulated later.
 
 If `RMV_TORRENT_SCOPES` is set in `.env`, environment ownership takes priority and the Settings page shows scopes as read-only.
+
+## 0.7.0 quarantine testing
+
+Quarantine is opt-in and should first be tested with dry-run still enabled:
+
+```env
+RMV_DRY_RUN=true
+RMV_QUARANTINE_REJECTED=true
+```
+
+After confirming the correct provider and managed scopes, enforcement can be enabled by setting `RMV_DRY_RUN=false` and recreating the container.
+
+When quarantine is enabled, blocked actionable torrents are paused/stopped and retained instead of deleted. Review held items at:
+
+```text
+http://YOUR-SERVER-IP:7811/api/quarantine
+```
+
+The dashboard also reports the current held count. Set `RMV_QUARANTINE_REJECTED=false` to return to the existing removal behavior.
 
 ## Advanced environment configuration
 
