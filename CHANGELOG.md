@@ -4,11 +4,18 @@
 
 Administration and operator-control development milestone.
 
-### Planned for this testing cycle
+### Added in the first 0.6.0 testing build
 
-- Authenticated administrative/settings area.
+- Authenticated administrative Settings page protected by explicit `RMV_ADMIN_USERNAME` and `RMV_ADMIN_PASSWORD` credentials.
+- Protected `/api/admin/settings` and `/api/admin/scopes` endpoints.
 - UI-managed provider scopes with explicit add/remove control.
-- Clear environment-versus-persisted configuration ownership.
+- Provider-specific persistence for manually managed scopes, including an intentional empty/fail-closed selection.
+- Clear environment-versus-UI-versus-bootstrap scope ownership.
+- Environment scope priority: `RMV_TORRENT_SCOPES` cannot be overridden from the UI.
+- Dashboard navigation to the new Settings area.
+- Regression coverage for manual-scope persistence, isolation, precedence and fail-closed behavior.
+
+### Remaining in this testing cycle
 - Structured per-file validation reasons in the UI and API.
 - Improved validation-history filtering and detail.
 - Safer confirmation flows for destructive settings.
