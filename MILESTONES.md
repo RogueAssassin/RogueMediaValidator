@@ -82,22 +82,30 @@ Planned:
 
 **Exit criteria:** deep validation is opt-in, bounded, auditable, and cannot silently delete data outside configured RMV behavior.
 
-## 0.8.0 — Radarr, Sonarr and automation feedback
+## 0.8.0 — Universal media automation feedback
 
-**Goal:** let RMV participate cleanly in automated media acquisition workflows.
+**Goal:** let RMV participate cleanly in automated TV/movie acquisition workflows without coupling the core integration model to Radarr or Sonarr.
 
 Planned:
-- Radarr integration
-- Sonarr integration
+- provider-neutral media-automation adapter/interface
+- Radarr integration as a first-class movie provider
+- Sonarr integration as a first-class TV provider
+- support for additional TV/movie automation applications through the same adapter model
+- generic webhook/API integration path for compatible or custom automation systems
+- capability discovery so RMV only attempts actions supported by each automation provider
 - failed-download/rejection feedback
-- retry and blocklist workflow where supported
-- source/indexer context attached to validation records
-- correlation between torrent, Arr download and RMV decision
-- safe handling when Arr services are unavailable
-- integration diagnostics and test actions
+- retry, blocklist or equivalent rejection workflow where supported
+- source/indexer context attached to validation records when exposed by the provider
+- correlation between torrent, automation download and RMV decision
+- safe handling when one or more automation services are unavailable
+- multiple automation-provider instances where practical
+- integration diagnostics and connection-test actions
 - duplicate/retry loop protection
+- keep torrent-provider validation independent from the automation provider selected
 
-**Exit criteria:** a rejected download can be reported upstream without creating uncontrolled retry loops or breaking standalone RMV operation.
+**Architecture rule:** Radarr and Sonarr must not become hard-coded assumptions in RMV core. Automation integrations should follow the same provider-neutral philosophy used for torrent clients so future TV/movie managers can be added without rewriting validation logic.
+
+**Exit criteria:** a rejected download can be reported to any supported upstream automation provider without creating uncontrolled retry loops, coupling RMV to the Arr ecosystem, or breaking standalone RMV operation.
 
 ## 0.9.0 — Notifications, ecosystem and operations
 
@@ -146,7 +154,7 @@ Release requirements:
 - UI-managed scopes
 - clear validation reasons and audit trail
 - optional quarantine/deep validation
-- stable Radarr/Sonarr feedback integrations
+- stable provider-neutral TV/movie automation feedback integrations, including Radarr and Sonarr
 - optional notifications and Rogue ecosystem integration
 - documented backup, restore, upgrade and rollback paths
 - stable configuration/API behavior documented
