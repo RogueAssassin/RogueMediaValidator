@@ -285,6 +285,28 @@ class ValidationService:
                     elif (
                         result.status == "blocked"
                         and actionable
+                        and self.settings.quarantine_rejected
+                    ):
+                        action = "quarantine"
+                        await client.pause(torrent_hash)
+                        action_status = "held"
+                        self.store.quarantine_hold(
+                            torrent_hash=torrent_hash,
+                            torrent_name=result.torrent_name,
+                            provider=self.client_name,
+                            scopes=result.category,
+                            reason=result.reason,
+                            at=datetime.now(UTC).isoformat(),
+                        )
+                        log.warning(
+                            "QUARANTINED %s [%s]: %s",
+                            result.torrent_name,
+                            self.client_name,
+                            result.reason,
+                        )
+                    elif (
+                        result.status == "blocked"
+                        and actionable
                         and self.settings.remove_rejected
                     ):
                         action = "delete"
@@ -379,6 +401,8 @@ class ValidationService:
             "actionable_torrents": self.last_actionable,
             "validated_this_cycle": self.last_validated,
             "policy_fingerprint": self.settings.policy_fingerprint,
+            "quarantine_rejected": self.settings.quarantine_rejected,
+            "quarantined": self.store.quarantine_count(),
         }
 
     async def close(self):
