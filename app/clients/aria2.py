@@ -141,6 +141,9 @@ class Aria2Client:
             if isinstance(item, dict)
         ]
 
+    async def pause(self, torrent_hash: str):
+        await self._rpc("aria2.pause", [torrent_hash])
+
     async def resume(self, torrent_hash: str):
         await self._rpc("aria2.unpause", [torrent_hash])
 
