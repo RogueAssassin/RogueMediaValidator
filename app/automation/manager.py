@@ -1,6 +1,8 @@
 import json
 import logging
 
+import httpx
+
 from .base import AutomationProvider
 
 log = logging.getLogger("rmv.automation")
@@ -26,7 +28,7 @@ class AutomationManager:
             try:
                 data = await provider.test()
                 results.append({"ok": True, **data})
-            except Exception as exc:
+            except (httpx.HTTPError, RuntimeError, TypeError, ValueError) as exc:
                 results.append(
                     {
                         "ok": False,
@@ -66,7 +68,7 @@ class AutomationManager:
                     "instance": provider.instance_name,
                     **result,
                 }
-            except Exception as exc:
+            except (httpx.HTTPError, RuntimeError, TypeError, ValueError) as exc:
                 outcome = {
                     "provider": provider.provider_id,
                     "instance": provider.instance_name,
