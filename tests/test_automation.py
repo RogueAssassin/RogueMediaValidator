@@ -11,7 +11,7 @@ from app.store import Store
 
 
 @pytest.mark.asyncio
-async def test_arr_provider_tests_status_and_reports_matching_download_without_client_delete():
+async def test_arr_provider_tests_status_and_reports_without_client_delete():
     calls = []
 
     def handler(request: httpx.Request):
@@ -165,7 +165,12 @@ class GoodProvider:
         return None
 
     async def test(self):
-        return {"provider": self.provider_id, "instance": self.instance_name, "name": self.display_name, "version": "1"}
+        return {
+            "provider": self.provider_id,
+            "instance": self.instance_name,
+            "name": self.display_name,
+            "version": "1",
+        }
 
     async def report_rejection(self, event):
         return {"status": "reported"}
