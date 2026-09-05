@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from .automation.manager import AutomationManager
 from .clients.base import TorrentClient
 from .config import Settings
+from .notifications.manager import NotificationManager
 from .store import Store
 from .validator import validate_payload
 
@@ -56,12 +57,14 @@ class ValidationService:
         client: TorrentClient | None,
         client_name: str = "",
         automation: AutomationManager | None = None,
+        notifications: NotificationManager | None = None,
     ):
         self.settings = settings
         self.store = store
         self.client = client
         self.client_name = client_name.strip().lower()
         self.automation = automation
+        self.notifications = notifications
         self.running = False
         self.last_error: str | None = None
         self.last_cycle_at: str | None = None
@@ -71,6 +74,8 @@ class ValidationService:
         self.managed_scopes: frozenset[str] = frozenset()
         self.scope_source = "none"
         self._scope_refresh_monotonic = 0.0
+        self._audit_prune_monotonic = 0.0
+        self.last_audit_prune: dict | None = None
         self._client_lock = asyncio.Lock()
         self.last_seen = 0
         self.last_in_scope = 0
@@ -269,6 +274,13 @@ class ValidationService:
                 )
 
                 if self.settings.dry_run:
+                    await self._notify(
+                        "approved" if result.status == "approved" else "rejected",
+                        result=result,
+                        action="none",
+                        action_status="audit",
+                        state=state,
+                    )
                     continue
 
                 action = "none"
@@ -349,6 +361,14 @@ class ValidationService:
                         action_status=action_status,
                         action_error=action_error,
                     )
+                    await self._notify(
+                        "failed",
+                        result=result,
+                        action=action,
+                        action_status=action_status,
+                        state=state,
+                        action_error=action_error,
+                    )
                     raise
 
                 self.store.save(
@@ -357,6 +377,24 @@ class ValidationService:
                     enforced=True,
                     action=action,
                     action_status=action_status,
+                    action_error=action_error,
+                )
+
+                notification_event = "approved"
+                if result.status == "blocked":
+                    if action_status == "limited":
+                        notification_event = "limited"
+                    elif action_status == "held":
+                        notification_event = "quarantined"
+                    else:
+                        notification_event = "rejected"
+
+                await self._notify(
+                    notification_event,
+                    result=result,
+                    action=action,
+                    action_status=action_status,
+                    state=state,
                     action_error=action_error,
                 )
 
@@ -379,11 +417,53 @@ class ValidationService:
                         }
                     )
 
+    async def _notify(
+        self,
+        event_type: str,
+        *,
+        result,
+        action: str,
+        action_status: str,
+        state: str,
+        action_error: str | None = None,
+    ):
+        if self.notifications is None or not self.notifications.configured:
+            return
+        await self.notifications.emit(
+            event_type,
+            {
+                "torrent_hash": result.torrent_hash,
+                "torrent_name": result.torrent_name,
+                "torrent_provider": self.client_name,
+                "scopes": result.category,
+                "validation_status": result.status,
+                "reason": result.reason,
+                "action": action,
+                "action_status": action_status,
+                "action_error": action_error,
+                "torrent_state": state,
+                "dry_run": self.settings.dry_run,
+                "checked_at": result.checked_at,
+            },
+        )
+
+    def _prune_audit_if_due(self, *, force: bool = False):
+        now = time.monotonic()
+        if not force and now - self._audit_prune_monotonic < 3600:
+            return
+        self.last_audit_prune = self.store.prune_audit(
+            retention_days=max(0, self.settings.audit_retention_days),
+            max_records=max(0, self.settings.audit_retention_max_records),
+        )
+        self._audit_prune_monotonic = now
+
     async def loop(self):
         self.running = True
+        self._prune_audit_if_due(force=True)
         while self.running:
             self.last_cycle_at = datetime.now(UTC).isoformat()
             try:
+                self._prune_audit_if_due()
                 await self.run_once()
                 if self.configured:
                     self.last_error = None
@@ -432,9 +512,23 @@ class ValidationService:
             "automation_last_results": (
                 self.automation.last_results if self.automation is not None else []
             ),
+            "notifications_configured": bool(
+                self.notifications and self.notifications.configured
+            ),
+            "notification_targets": (
+                len(self.notifications.targets) if self.notifications is not None else 0
+            ),
+            "notification_last_results": (
+                self.notifications.last_results if self.notifications is not None else []
+            ),
+            "audit_retention_days": self.settings.audit_retention_days,
+            "audit_retention_max_records": self.settings.audit_retention_max_records,
+            "last_audit_prune": self.last_audit_prune,
         }
 
     async def close(self):
+        if self.notifications is not None:
+            await self.notifications.close()
         if self.automation is not None:
             await self.automation.close()
         async with self._client_lock:
