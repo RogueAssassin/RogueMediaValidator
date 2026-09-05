@@ -92,4 +92,8 @@ class ArrAutomationProvider:
             "queue_id": queue_id,
             "blocklist": True,
             "remove_from_client": False,
+            "title": str(queue_item.get("title") or ""),
+            "download_client": str(queue_item.get("downloadClient") or ""),
+            "protocol": str(queue_item.get("protocol") or ""),
+            "tracked_state": str(queue_item.get("trackedDownloadState") or ""),
         }
