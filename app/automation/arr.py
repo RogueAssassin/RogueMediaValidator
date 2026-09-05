@@ -20,7 +20,6 @@ class ArrAutomationProvider:
         self.client = httpx.AsyncClient(
             timeout=timeout,
             transport=transport,
-            headers={"X-Api-Key": api_key},
             limits=httpx.Limits(max_connections=6, max_keepalive_connections=3),
         )
 
@@ -28,7 +27,10 @@ class ArrAutomationProvider:
         await self.client.aclose()
 
     async def test(self) -> dict:
-        response = await self.client.get(f"{self.base_url}/api/v3/system/status")
+        response = await self.client.get(
+            f"{self.base_url}/api/v3/system/status",
+            headers={"X-Api-Key": self.api_key},
+        )
         response.raise_for_status()
         payload = response.json()
         if not isinstance(payload, dict):
@@ -45,6 +47,7 @@ class ArrAutomationProvider:
         response = await self.client.get(
             f"{self.base_url}/api/v3/queue",
             params={"page": 1, "pageSize": 100},
+            headers={"X-Api-Key": self.api_key},
         )
         response.raise_for_status()
         payload = response.json()
@@ -78,6 +81,7 @@ class ArrAutomationProvider:
         reason = str(event.get("reason", "Rejected by RogueMediaValidator"))
         response = await self.client.delete(
             f"{self.base_url}/api/v3/queue/{queue_id}",
+            headers={"X-Api-Key": self.api_key},
             params={
                 "removeFromClient": "false",
                 "blocklist": "true",
