@@ -109,6 +109,23 @@ Verify:
 - feedback deduplication;
 - Settings integration test action.
 
+## 0.9.0 operations
+
+Verify:
+
+- `/healthz` returns HTTP 200 while the process is alive;
+- `/readyz` returns HTTP 503 before RMV is operational;
+- `/readyz` returns HTTP 200 only with a successful client cycle and managed scopes;
+- `/api/status` contains no provider passwords, API keys or admin credentials;
+- notification webhook tests send `rmv.test`;
+- approved/rejected/failed/limited/quarantined events are filtered per target subscription;
+- one failed notification target does not interrupt RMV enforcement;
+- notification delivery results are audited;
+- CSV and JSON validation-audit exports work under admin authentication;
+- age-based and count-based retention work independently;
+- audit cleanup does not delete runtime/provider/scope configuration;
+- 0.8.0 media-automation feedback remains unchanged.
+
 ## Shared regressions
 
 - executable/script blocking;
