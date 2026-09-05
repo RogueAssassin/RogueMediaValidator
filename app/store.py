@@ -170,6 +170,30 @@ class Store:
         )
         return value == "1"
 
+    def set_manual_scopes(self, scopes: list[str], provider: str):
+        normalized = sorted({x.strip().lower() for x in scopes if x.strip()})
+        self.set_runtime_setting(
+            self._scope_key(provider, "manual_scopes"),
+            json.dumps(normalized),
+        )
+
+    def manual_scopes(self, provider: str) -> frozenset[str] | None:
+        raw = self.get_runtime_setting(self._scope_key(provider, "manual_scopes"))
+        if raw is None:
+            return None
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(payload, list):
+            return None
+        return frozenset(str(x).strip().lower() for x in payload if str(x).strip())
+
+    def clear_manual_scopes(self, provider: str):
+        key = self._scope_key(provider, "manual_scopes")
+        with self._connect() as db:
+            db.execute("DELETE FROM runtime_settings WHERE key=?", (key,))
+
     def clear_bootstrap_scopes(self, provider: str):
         keys = [
             self._scope_key(provider, "bootstrap_scopes"),
