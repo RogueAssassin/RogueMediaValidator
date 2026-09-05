@@ -9,22 +9,23 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="app setup-app">
     <header class="topbar">
       <div class="brand">
-        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RMV">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RogueMediaValidator">
         <div class="brand-copy">
           <strong>RogueMediaValidator</strong>
           <span>Installation & torrent client setup</span>
         </div>
       </div>
-      <div class="topbar-actions">
+      <nav class="topbar-actions" aria-label="Primary navigation">
         <span class="version">v{{ version }}</span>
         {% if configured %}<a class="button secondary" href="/">Back to dashboard</a>{% endif %}
-      </div>
+      </nav>
     </header>
 
-    <main class="setup-main">
+    <main class="setup-main" id="main-content">
       <section class="setup-hero">
         <p class="eyebrow">Installation</p>
         <h1>Connect your torrent client</h1>
@@ -73,7 +74,7 @@
           {% for provider in providers %}
           <button
             type="button"
-            class="provider-card {{ 'disabled' if provider.status != 'supported' else '' }}"
+            class="provider-card {{ 'disabled' if provider.status != 'supported' else '' }}" aria-pressed="false"
             data-provider="{{ provider.id }}"
             data-url="{{ provider.default_url }}"
             data-supported="{{ 'true' if provider.status == 'supported' else 'false' }}"
@@ -128,7 +129,7 @@
           <button class="button primary" id="save-button" type="button" disabled>Save & finish setup</button>
         </div>
 
-        <div class="setup-result" id="setup-result" hidden></div>
+        <div class="setup-result" id="setup-result" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="panel setup-help">
