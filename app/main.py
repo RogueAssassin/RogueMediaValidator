@@ -12,6 +12,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from . import __version__
+from .automation import AutomationManager, build_automation_providers
+from .automation.factory import AUTOMATION_PROVIDER_META
 from .clients.factory import CLIENT_PROVIDERS, create_client
 from .config import get_settings
 from .service import ValidationService
@@ -24,6 +26,18 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 store = Store(settings.data_dir / "rmv.db")
 templates = Jinja2Templates(directory="app/templates")
+automation_config_error: str | None = None
+try:
+    automation = AutomationManager(
+        build_automation_providers(settings.automation_providers_json),
+        store,
+    )
+except (ValueError, TypeError) as exc:
+    automation_config_error = str(exc)
+    logging.getLogger("rmv.automation").error(
+        "Invalid media automation configuration: %s", exc
+    )
+    automation = AutomationManager([], store)
 admin_security = HTTPBasic(auto_error=False)
 
 
@@ -104,7 +118,13 @@ if initial_config:
     except (KeyError, ValueError) as exc:
         logging.getLogger("rmv").error("Invalid torrent client configuration: %s", exc)
 
-service = ValidationService(settings, store, initial_client, initial_provider)
+service = ValidationService(
+    settings,
+    store,
+    initial_client,
+    initial_provider,
+    automation=automation,
+)
 
 
 @asynccontextmanager
@@ -215,6 +235,17 @@ async def settings_page(
             "scope_locked": bool(settings.scopes),
             "admin_username": settings.admin_username,
             "client_config": public_client_config(),
+            "automation_providers": AUTOMATION_PROVIDER_META,
+            "automation_config_error": automation_config_error,
+            "automation_instances": [
+                {
+                    "provider": provider.provider_id,
+                    "name": provider.instance_name,
+                    "display_name": provider.display_name,
+                }
+                for provider in automation.providers
+            ],
+            "automation_stats": store.automation_stats(),
         },
     )
 
@@ -343,6 +374,20 @@ async def admin_settings(_admin: Annotated[str, Depends(require_admin)]):
         "environment_scopes": sorted(settings.scopes),
         "managed_scopes": sorted(service.managed_scopes),
         "discovered_scopes": service.discovered_scopes,
+        "media_automation": {
+            "configured": automation.configured,
+            "config_error": automation_config_error,
+            "instances": [
+                {
+                    "provider": provider.provider_id,
+                    "name": provider.instance_name,
+                    "display_name": provider.display_name,
+                }
+                for provider in automation.providers
+            ],
+            "stats": store.automation_stats(),
+            "last_results": automation.last_results,
+        },
     }
 
 
@@ -390,6 +435,25 @@ async def admin_scopes(
     }
 
 
+@app.post("/api/admin/automation/test")
+async def automation_test(_admin: Annotated[str, Depends(require_admin)]):
+    if automation_config_error:
+        raise HTTPException(status_code=400, detail=automation_config_error)
+    return {
+        "ok": True,
+        "configured": automation.configured,
+        "results": await automation.test_all(),
+    }
+
+
+@app.get("/api/automation/events")
+async def automation_events(
+    limit: int = 50,
+    _admin: Annotated[str, Depends(require_admin)] = None,
+):
+    return store.automation_events(max(1, min(limit, 500)))
+
+
 @app.get("/api/health")
 async def health():
     return health_payload()
@@ -424,6 +488,20 @@ async def diagnostics():
             "policy_fingerprint": settings.policy_fingerprint,
             "quarantine_rejected": settings.quarantine_rejected,
             "quarantined": store.quarantine_count(),
+        },
+        "media_automation": {
+            "configured": automation.configured,
+            "config_error": automation_config_error,
+            "instances": [
+                {
+                    "provider": provider.provider_id,
+                    "name": provider.instance_name,
+                    "display_name": provider.display_name,
+                }
+                for provider in automation.providers
+            ],
+            "stats": store.automation_stats(),
+            "last_results": automation.last_results,
         },
         "service": snapshot,
         "storage": store.stats(),
