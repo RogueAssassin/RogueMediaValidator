@@ -16,11 +16,9 @@ class WebhookAutomationProvider:
         self.token = token
         timeout = httpx.Timeout(15.0, connect=5.0)
         transport = httpx.AsyncHTTPTransport(retries=2)
-        headers = {"Authorization": f"Bearer {token}"} if token else {}
         self.client = httpx.AsyncClient(
             timeout=timeout,
             transport=transport,
-            headers=headers,
             limits=httpx.Limits(max_connections=6, max_keepalive_connections=3),
         )
 
@@ -37,9 +35,11 @@ class WebhookAutomationProvider:
         }
 
     async def report_rejection(self, event: dict) -> dict:
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
         response = await self.client.post(
             self.url,
             json={"event": "rmv.rejected", **event},
+            headers=headers,
         )
         response.raise_for_status()
         return {"status": "reported", "http_status": response.status_code}
