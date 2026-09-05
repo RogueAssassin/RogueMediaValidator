@@ -421,7 +421,7 @@ class Store:
                 cursor = db.execute(
                     """
                     DELETE FROM validations
-                    WHERE checked_at < datetime('now', ?)
+                    WHERE datetime(checked_at) < datetime('now', ?)
                     """,
                     (f"-{retention_days} days",),
                 )
