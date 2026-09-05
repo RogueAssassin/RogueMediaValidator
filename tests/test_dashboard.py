@@ -76,7 +76,9 @@ def test_dashboard_template_renders_with_generic_client_context():
     assert "Unsafe release.exe" in rendered
     assert "Settings" in rendered
     assert "Installation" in rendered
-    assert "Diagnostics" in rendered
+    assert "Skip to main content" in rendered
+    assert 'aria-label="Primary navigation"' in rendered
+    assert "Open diagnostics JSON" in rendered
     assert "Delete payload data" in rendered
     assert "Quarantined" in rendered
     assert "Quarantine mode" in rendered
