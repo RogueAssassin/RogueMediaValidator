@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     auto_resume_valid: bool = True
     quarantine_rejected: bool = False
 
-        # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
+    # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
     automation_providers_json: str = ""
 
     notification_targets_json: str = ""
