@@ -119,13 +119,19 @@ Planned:
 
 **Goal:** make RMV observable and easy to integrate into a complete media stack.
 
-Planned:
-- notification/webhook events for approved, rejected, failed and limited actions
-- RogueDashboard integration
-- health/status integration suitable for Uptime Kuma and similar monitors
-- audit export
-- configurable audit retention/cleanup
-- operational metrics and clearer health/readiness reporting
+Implemented in first 0.9.0 testing slice:
+- best-effort notification webhooks for approved, rejected, failed, limited and quarantined outcomes
+- notification delivery audit and connection testing
+- compact `/api/status` surface suitable for RogueDashboard integration
+- separate `/healthz` liveness and `/readyz` readiness endpoints
+- authenticated CSV/JSON validation-audit export
+- configurable age/count audit retention with periodic cleanup
+- Settings UI for operations, export and notification testing
+
+Next:
+- richer RogueDashboard presentation/integration
+- additional notification destinations where useful
+- operational metrics and trend visibility
 - backup/restore guidance for RMV persistent state
 - UI/UX accessibility and responsive-layout pass
 - performance profiling for large torrent histories and busy clients
