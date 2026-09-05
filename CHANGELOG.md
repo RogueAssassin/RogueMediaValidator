@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.0 - testing - 2026-09-05
+
+Notifications, ecosystem and operations milestone opened after successful v0.8.0 live validation.
+
+### Baseline
+
+- v0.8.0 universal media-automation feedback has passed live testing.
+- Final v0.8.0 testing commit passed both GitHub CI and Container workflows.
+- Radarr/Sonarr and generic webhook automation support remain mandatory regression coverage.
+- Torrent-provider, quarantine, scope and administration behavior remain part of the 0.9.0 compatibility contract.
+
+### 0.9.0 goals
+
+- notification events for approved, rejected, failed and limited outcomes;
+- RogueDashboard integration;
+- health/readiness integration suitable for Uptime Kuma and similar monitoring;
+- audit export and configurable retention/cleanup;
+- clearer operational metrics;
+- backup, restore and recovery guidance for persistent RMV state;
+- UI/UX accessibility and responsive-layout hardening;
+- performance profiling for larger histories and busy torrent clients.
+
+### Release direction
+
+0.9.0 is the final feature milestone before the 0.9.x release-candidate hardening cycle. Major features should converge here so the following cycle can focus on compatibility, migration, security, documentation and release reliability.
+
+
 ## 0.8.0 - testing - 2026-09-05
 
 Universal TV/movie automation feedback milestone.
