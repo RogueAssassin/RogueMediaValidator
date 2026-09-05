@@ -289,6 +289,8 @@ RMV_HTTP_PORT=7811
 RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:testing
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
+RMV_ADMIN_USERNAME=operator
+RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
 
 RMV_TORRENT_CLIENT=
 RMV_TORRENT_URL=
@@ -302,6 +304,7 @@ What to change:
 - **`RMV_IMAGE`** — normally leave this unchanged; this README is configured for the **testing** channel.
 - **`RMV_NETWORK`** — set this to the existing Docker/Podman network used by your torrent client. `media-net` is only the default.
 - **`RMV_DRY_RUN=true`** — keep this enabled for the first install so RMV validates and records results without resuming or removing torrents.
+- **`RMV_ADMIN_USERNAME` / `RMV_ADMIN_PASSWORD`** — set both to enable the authenticated 0.6.0 Settings page. Use a strong unique password; there is deliberately no default admin password.
 - **Torrent client fields** — leave these four values blank when using the browser Installation wizard. Advanced users may fill them in to manage the provider entirely through environment variables.
 
 In `nano`, save with **Ctrl+O**, press **Enter**, then exit with **Ctrl+X**.
@@ -352,7 +355,9 @@ For a local install, `http://localhost:7811` also works.
 
 Select your torrent client, enter its API/Web UI connection details, run **Test connection**, review discovered categories/labels/download paths, and save the setup.
 
-Keep RMV in dry-run until Diagnostics shows the correct client, scopes and expected validation results. When you are satisfied, edit `.env` again with `nano .env`, set `RMV_DRY_RUN=false`, and recreate the container so enforcement becomes active.
+Keep RMV in dry-run until Diagnostics shows the correct client, scopes and expected validation results. Open **Settings** to review configuration ownership and explicitly add/remove managed scopes. The Settings page uses HTTP Basic authentication from `RMV_ADMIN_USERNAME` and `RMV_ADMIN_PASSWORD`.
+
+When you are satisfied, edit `.env` again with `nano .env`, set `RMV_DRY_RUN=false`, and recreate the container so enforcement becomes active.
 
 ## Advanced environment-managed setup
 
