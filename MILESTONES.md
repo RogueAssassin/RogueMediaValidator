@@ -67,7 +67,7 @@ Carried into the 0.7.x operator-review work:
 - scope changes cannot accidentally broaden enforcement
 - CI and container builds pass on testing
 
-## 0.7.0 — Quarantine and deep media validation — active testing
+## 0.7.0 — Quarantine and deep media validation — validated quarantine foundation
 
 **Goal:** move beyond torrent filename/metadata policy into optional post-download media verification.
 
@@ -90,7 +90,7 @@ Next:
 
 **Exit criteria:** deep validation is opt-in, bounded, auditable, and cannot silently delete data outside configured RMV behavior.
 
-## 0.8.0 — Universal media automation feedback
+## 0.8.0 — Universal media automation feedback — active testing
 
 **Goal:** let RMV participate cleanly in automated TV/movie acquisition workflows without coupling the core integration model to Radarr or Sonarr.
 
