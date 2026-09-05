@@ -150,6 +150,67 @@
         {% endif %}
       </section>
 
+      <section class="panel settings-summary">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">0.9.0 notifications</span>
+            <h2>Operational notifications</h2>
+          </div>
+          <span class="state {{ 'ok' if notification_targets else 'neutral' }}">{{ notification_targets|length }} configured</span>
+        </div>
+
+        {% if notification_config_error %}
+          <div class="setup-result error">
+            <strong>Configuration error</strong>
+            <span>{{ notification_config_error }}</span>
+          </div>
+        {% elif notification_targets %}
+          <div class="provider-grid">
+            {% for item in notification_targets %}
+              <article class="provider-card selected">
+                <div class="provider-card-head">
+                  <strong>{{ item.name }}</strong>
+                  <span class="provider-badge supported">{{ item.provider }}</span>
+                </div>
+                <p>{{ item.events | join(', ') }}</p>
+                <small>Best-effort notification target</small>
+              </article>
+            {% endfor %}
+          </div>
+          <div class="setup-actions">
+            <a class="button secondary" href="/api/notifications/events" target="_blank" rel="noopener">Notification events</a>
+            <button class="button primary" type="button" id="notification-test">Test notifications</button>
+          </div>
+          <div id="notification-result" class="setup-result" hidden></div>
+        {% else %}
+          <p class="settings-help">
+            No notification targets are configured. Add optional webhook targets with <code>RMV_NOTIFICATION_TARGETS_JSON</code>.
+          </p>
+        {% endif %}
+      </section>
+
+      <section class="panel settings-summary">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">0.9.0 operations</span>
+            <h2>Health and audit lifecycle</h2>
+          </div>
+          <span class="state neutral">{{ settings.audit_retention_days }} day retention</span>
+        </div>
+        <dl class="facts">
+          <div><dt>Liveness</dt><dd><a href="/healthz" target="_blank" rel="noopener">/healthz</a></dd></div>
+          <div><dt>Readiness</dt><dd><a href="/readyz" target="_blank" rel="noopener">/readyz</a></dd></div>
+          <div><dt>Integration status</dt><dd><a href="/api/status" target="_blank" rel="noopener">/api/status</a></dd></div>
+          <div><dt>Max audit records</dt><dd>{{ settings.audit_retention_max_records }}</dd></div>
+        </dl>
+        <div class="setup-actions">
+          <a class="button secondary" href="/api/admin/audit/export.csv">Export CSV</a>
+          <a class="button secondary" href="/api/admin/audit/export.json" target="_blank" rel="noopener">Export JSON</a>
+          <button class="button primary" type="button" id="audit-prune">Run retention cleanup</button>
+        </div>
+        <div id="audit-result" class="setup-result" hidden></div>
+      </section>
+
       <section class="panel setup-help">
         <div>
           <span class="section-label">Safety model</span>
@@ -166,6 +227,46 @@
   </div>
 
   <script>
+    const notificationButton = document.getElementById('notification-test');
+    const notificationResult = document.getElementById('notification-result');
+    const auditPruneButton = document.getElementById('audit-prune');
+    const auditResult = document.getElementById('audit-result');
+
+    notificationButton?.addEventListener('click', async () => {
+      notificationResult.hidden = false;
+      notificationResult.className = 'setup-result working';
+      notificationResult.innerHTML = '<strong>Testing…</strong><span>Checking configured notification targets.</span>';
+      try {
+        const response = await fetch('/api/admin/notifications/test', {method: 'POST'});
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'Notification test failed.');
+        const lines = payload.results.map((item) =>
+          item.name + ': ' + (item.ok ? 'OK' : 'FAILED - ' + item.error)
+        );
+        notificationResult.className = payload.results.every((item) => item.ok) ? 'setup-result success' : 'setup-result error';
+        notificationResult.innerHTML = '<strong>Notification test complete</strong><span>' + (lines.join('<br>') || 'No targets configured.') + '</span>';
+      } catch (error) {
+        notificationResult.className = 'setup-result error';
+        notificationResult.innerHTML = '<strong>Test failed</strong><span>' + error.message + '</span>';
+      }
+    });
+
+    auditPruneButton?.addEventListener('click', async () => {
+      auditResult.hidden = false;
+      auditResult.className = 'setup-result working';
+      auditResult.innerHTML = '<strong>Cleaning…</strong><span>Applying audit retention settings.</span>';
+      try {
+        const response = await fetch('/api/admin/audit/prune', {method: 'POST'});
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'Audit cleanup failed.');
+        auditResult.className = 'setup-result success';
+        auditResult.innerHTML = '<strong>Cleanup complete</strong><span>Removed ' + payload.deleted_total + ' validation records.</span>';
+      } catch (error) {
+        auditResult.className = 'setup-result error';
+        auditResult.innerHTML = '<strong>Cleanup failed</strong><span>' + error.message + '</span>';
+      }
+    });
+
     const automationButton = document.getElementById('automation-test');
     const automationResult = document.getElementById('automation-result');
 
