@@ -72,6 +72,7 @@ def test_dashboard_template_renders_with_generic_client_context():
     assert "movies" in rendered
     assert "manual" in rendered
     assert "Unsafe release.exe" in rendered
+    assert "Settings" in rendered
     assert "Installation" in rendered
     assert "Diagnostics" in rendered
     assert "Delete payload data" in rendered
@@ -154,3 +155,33 @@ def test_setup_template_lists_all_supported_providers():
         assert provider["name"] in rendered
     assert "torrent entry only" in rendered
     assert "Save & finish setup" in rendered
+
+
+def test_settings_template_explains_configuration_ownership():
+    template = template_env().get_template("settings.html")
+    settings = SimpleNamespace(dry_run=True)
+    health = {
+        "torrent_client_name": "qBittorrent",
+        "diagnostics": {
+            "scope_name": "categories",
+            "scope_source": "ui",
+            "managed_scopes": ["movies"],
+        },
+    }
+
+    rendered = template.render(
+        version="0.6.0",
+        settings=settings,
+        health=health,
+        available_scopes=["movies", "tv"],
+        scope_locked=False,
+        admin_username="operator",
+        client_config={"source": "setup"},
+    )
+
+    assert "0.6.0 operator control" in rendered
+    assert "Save managed scopes" in rendered
+    assert "movies" in rendered
+    assert "Discovered, not managed" in rendered
+    assert "Fail closed" in rendered
+    assert "Environment priority" in rendered
