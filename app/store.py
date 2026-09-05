@@ -70,6 +70,17 @@ class Store:
                         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS notification_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_type TEXT NOT NULL,
+                        target TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        detail TEXT NOT NULL DEFAULT '',
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
                 columns = {
                     row[1] for row in db.execute("PRAGMA table_info(validations)").fetchall()
                 }
@@ -350,6 +361,94 @@ class Store:
             "not_found": counts.get("not_found", 0),
             "failed": counts.get("failed", 0),
             "skipped": counts.get("skipped", 0),
+        }
+
+    def save_notification_event(
+        self,
+        *,
+        event_type: str,
+        target: str,
+        name: str,
+        status: str,
+        detail: str = "",
+    ):
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO notification_events
+                (event_type,target,name,status,detail)
+                VALUES (?,?,?,?,?)
+                """,
+                (event_type, target, name, status, detail),
+            )
+
+    def notification_events(self, limit: int = 50) -> list[dict]:
+        with self._connect() as db:
+            db.row_factory = sqlite3.Row
+            rows = db.execute(
+                "SELECT * FROM notification_events ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def notification_stats(self) -> dict:
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT status, COUNT(*) FROM notification_events GROUP BY status"
+            ).fetchall()
+        counts = {str(key): int(value) for key, value in rows}
+        return {
+            "total": sum(counts.values()),
+            "sent": counts.get("sent", 0),
+            "failed": counts.get("failed", 0),
+        }
+
+    def export_audit(self, limit: int = 10000) -> list[dict]:
+        with self._connect() as db:
+            db.row_factory = sqlite3.Row
+            rows = db.execute(
+                "SELECT * FROM validations ORDER BY checked_at DESC LIMIT ?",
+                (max(1, limit),),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def prune_audit(self, *, retention_days: int, max_records: int) -> dict:
+        deleted_by_age = 0
+        deleted_by_count = 0
+
+        with self._connect() as db:
+            if retention_days > 0:
+                cursor = db.execute(
+                    """
+                    DELETE FROM validations
+                    WHERE checked_at < datetime('now', ?)
+                    """,
+                    (f"-{retention_days} days",),
+                )
+                deleted_by_age = max(0, int(cursor.rowcount))
+
+            if max_records > 0:
+                row = db.execute("SELECT COUNT(*) FROM validations").fetchone()
+                count = int(row[0] if row else 0)
+                excess = max(0, count - max_records)
+                if excess:
+                    cursor = db.execute(
+                        """
+                        DELETE FROM validations
+                        WHERE torrent_hash IN (
+                            SELECT torrent_hash FROM validations
+                            ORDER BY checked_at ASC
+                            LIMIT ?
+                        )
+                        """,
+                        (excess,),
+                    )
+                    deleted_by_count = max(0, int(cursor.rowcount))
+
+        return {
+            "deleted_by_age": deleted_by_age,
+            "deleted_by_count": deleted_by_count,
+            "deleted_total": deleted_by_age + deleted_by_count,
         }
 
     def recent(self, limit: int = 50) -> list[dict]:
