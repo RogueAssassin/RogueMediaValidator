@@ -149,7 +149,7 @@ def test_factory_supports_multiple_instances_and_universal_webhook():
 
 
 def test_factory_rejects_invalid_configuration():
-    with pytest.raises(ValueError, match="JSON array"):
+    with pytest.raises(TypeError, match="JSON array"):
         parse_automation_configs('{"provider":"radarr"}')
 
     with pytest.raises(ValueError, match="Unsupported automation provider"):
