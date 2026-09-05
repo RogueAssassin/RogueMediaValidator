@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.8.0 - testing - 2026-09-05
+
+Universal TV/movie automation feedback milestone.
+
+### Added in the first 0.8.0 testing build
+
+- Provider-neutral media-automation protocol independent from torrent-client adapters.
+- First-class Radarr adapter.
+- First-class Sonarr adapter.
+- Generic authenticated webhook adapter for compatible/custom TV/movie automation systems.
+- Multiple automation-provider instances through `RMV_AUTOMATION_PROVIDERS_JSON`.
+- Radarr/Sonarr queue correlation by torrent hash / `downloadId`.
+- Rejection feedback using upstream blocklist/retry workflow without asking the automation provider to remove the torrent client item.
+- Structured queue correlation context including queue ID, title, download client, protocol and tracked state where available.
+- Provider connection tests from the authenticated Settings page.
+- Protected automation feedback event history API.
+- SQLite audit trail for automation feedback outcomes.
+- Per-provider failure isolation.
+- Successful feedback deduplication to reduce uncontrolled retry/blocklist loops.
+
+### Architecture
+
+- Radarr and Sonarr are adapters, not assumptions in RMV core.
+- Torrent validation/enforcement completes and is persisted before media-automation feedback runs.
+- Automation-provider failure cannot approve a rejected torrent or undo quarantine/deletion.
+- Generic webhooks expose the same provider-neutral rejection event to future or custom automation systems.
+
+### Remaining 0.8.x work
+
+- Richer provider-specific source/indexer context where APIs expose it reliably.
+- UI-managed automation configuration instead of environment-only JSON.
+- Additional automation providers based on real-world demand and stable APIs.
+- Expanded retry-loop/correlation regression coverage with live providers.
+- Optional inbound automation event/callback correlation where useful.
+
+
 ## 0.7.0 - testing - 2026-09-05
 
 Quarantine and deep-media-validation milestone.
