@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.8.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.9.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -28,7 +28,7 @@ The validation engine is provider-neutral. Every torrent application is isolated
 
 ## Testing channel
 
-This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **Testing is now advancing through v0.8.0**, focused on provider-neutral TV/movie automation feedback, multiple automation instances, Radarr/Sonarr first-class adapters, and a generic webhook path for other/custom automation.
+This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **v0.8.0 has completed live testing and its CI/container gates are green. Testing is now advancing through v0.9.0**, focused on notifications, Rogue ecosystem integration, operational health/readiness, audit lifecycle, backup/recovery guidance, UI/UX hardening and performance before the 1.0 release-candidate cycle.
 
 Testing image:
 
@@ -622,7 +622,7 @@ The provider layer is complete. Development now moves through staged operator, v
 | --- | --- |
 | **0.6.0** | Authenticated administration, UI-managed scopes, validation detail and operator safety |
 | **0.7.0** | Quarantine workflows and optional post-download media validation |
-| **0.8.0** | Universal TV/movie automation integrations: Radarr/Sonarr adapters, generic webhooks, multi-instance feedback, correlation and loop protection |
+| **0.8.0** | Universal TV/movie automation integrations: Radarr/Sonarr adapters, generic webhooks, multi-instance feedback, correlation and loop protection — validated |
 | **0.9.0** | Notifications, RogueDashboard integration, health, audit retention and operational polish |
 | **0.9.x RC** | Feature freeze, upgrade/security testing, documentation and release hardening |
 | **1.0.0** | First production-ready stable contract |
