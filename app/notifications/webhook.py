@@ -28,11 +28,23 @@ class WebhookNotificationTarget:
         await self.client.aclose()
 
     async def test(self) -> dict:
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        response = await self.client.post(
+            self.url,
+            json={
+                "event": "rmv.test",
+                "service": "RogueMediaValidator",
+                "message": "Notification connection test",
+            },
+            headers=headers,
+        )
+        response.raise_for_status()
         return {
             "target": self.target_id,
             "name": self.display_name,
-            "configured": bool(self.url),
+            "configured": True,
             "events": sorted(self.events),
+            "http_status": response.status_code,
         }
 
     async def send(self, event_type: str, payload: dict) -> dict:
