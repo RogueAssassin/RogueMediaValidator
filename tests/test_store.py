@@ -153,3 +153,79 @@ def test_quarantine_hold_is_persisted_and_counted(tmp_path: Path):
     assert row["provider"] == "qbittorrent"
     assert row["state"] == "held"
     assert store.stats()["quarantined"] == 1
+
+
+def test_notification_events_are_persisted_separately(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    store.save_notification_event(
+        event_type="rejected",
+        target="webhook",
+        name="Ops",
+        status="sent",
+        detail='{"status":"sent"}',
+    )
+
+    rows = store.notification_events(10)
+
+    assert len(rows) == 1
+    assert rows[0]["event_type"] == "rejected"
+    assert rows[0]["name"] == "Ops"
+    assert store.notification_stats() == {"total": 1, "sent": 1, "failed": 0}
+
+
+def test_audit_export_returns_validation_rows(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    store.save(result(), policy_fingerprint="policy-a", enforced=True)
+
+    rows = store.export_audit()
+
+    assert len(rows) == 1
+    assert rows[0]["torrent_hash"] == "abc"
+    assert rows[0]["policy_fingerprint"] == "policy-a"
+
+
+def test_audit_prune_by_count_keeps_newest_records_and_runtime_settings(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    store.set_runtime_setting("keep-me", "yes")
+
+    for index in range(4):
+        item = ValidationResult(
+            torrent_hash=f"hash-{index}",
+            torrent_name=f"Movie {index}",
+            category="movies",
+            status="approved",
+            reason="Verified media payload",
+            video_files=1,
+            blocked_files=0,
+            largest_video_bytes=1_000_000,
+            checked_at=f"2026-09-0{index + 1}T00:00:00+00:00",
+        )
+        store.save(item, policy_fingerprint="policy-a", enforced=True)
+
+    result_info = store.prune_audit(retention_days=0, max_records=2)
+    rows = store.export_audit()
+
+    assert result_info["deleted_by_count"] == 2
+    assert [row["torrent_hash"] for row in rows] == ["hash-3", "hash-2"]
+    assert store.get_runtime_setting("keep-me") == "yes"
+
+
+def test_audit_prune_by_age_uses_iso_timestamps(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    old = ValidationResult(
+        torrent_hash="old",
+        torrent_name="Old",
+        category="movies",
+        status="approved",
+        reason="Verified",
+        video_files=1,
+        blocked_files=0,
+        largest_video_bytes=1000,
+        checked_at="2020-01-01T00:00:00+00:00",
+    )
+    store.save(old, policy_fingerprint="policy-a", enforced=True)
+
+    result_info = store.prune_audit(retention_days=30, max_records=0)
+
+    assert result_info["deleted_by_age"] == 1
+    assert store.export_audit() == []
