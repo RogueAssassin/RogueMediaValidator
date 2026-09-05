@@ -36,6 +36,8 @@ Set the shared network and keep dry-run enabled:
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
 RMV_SETUP_UNLOCK=false
+RMV_ADMIN_USERNAME=operator
+RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
 ```
 
 ## 2. Start RMV
@@ -152,6 +154,27 @@ RMV_TORRENT_AUTO_BOOTSTRAP_SCOPES=true
 The first non-empty discovered provider scope set is persisted.
 
 New scopes discovered later remain visible but unmanaged.
+
+## 0.6.0 administrative Settings
+
+Set both admin values in `.env` to enable the protected Settings page:
+
+```env
+RMV_ADMIN_USERNAME=operator
+RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
+```
+
+There is intentionally no default password. If either value is blank, `/settings` and `/api/admin/*` remain disabled.
+
+After Installation has discovered the torrent client's categories, labels or download paths, open:
+
+```text
+http://YOUR-SERVER-IP:7811/settings
+```
+
+The browser will request the admin credentials. When `RMV_TORRENT_SCOPES` is blank, the Settings page can explicitly add or remove managed scopes. An empty selection is saved as a deliberate fail-closed state and is not automatically repopulated later.
+
+If `RMV_TORRENT_SCOPES` is set in `.env`, environment ownership takes priority and the Settings page shows scopes as read-only.
 
 ## Advanced environment configuration
 
