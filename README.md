@@ -81,9 +81,11 @@ For strongest pre-download protection, have automation add new downloads paused/
 
 ## First-run Installation
 
-A fresh instance has no torrent client selected.
+A fresh install is designed to be safe and simple: create the deployment files, **edit the `.env` before starting RMV**, start the container, then finish the torrent-client connection through the browser.
 
-Open:
+For most media-server owners, leave the torrent-client connection fields blank in `.env` and use the guided Installation page. The important first-run values to review are the published port, container image, shared Docker/Podman network, and dry-run setting.
+
+After the container starts, open:
 
 ```text
 http://localhost:7811
@@ -260,6 +262,10 @@ RMV does **not** mount Docker or Podman sockets and should never require:
 
 ## Quick install
 
+The commands below create a clean RMV deployment in `/opt/media-server/roguemediavalidator`.
+
+### 1. Download the deployment files
+
 ```bash
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
@@ -269,10 +275,61 @@ curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/m
 chmod 600 .env
 ```
 
+### 2. Edit `.env` before the first start
+
+**Do not skip this step.** Open the environment file:
+
+```bash
+nano .env
+```
+
+For a normal guided installation, check these settings:
+
+```env
+RMV_HTTP_PORT=7811
+RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:latest
+RMV_NETWORK=media-net
+RMV_DRY_RUN=true
+
+RMV_TORRENT_CLIENT=
+RMV_TORRENT_URL=
+RMV_TORRENT_USERNAME=
+RMV_TORRENT_PASSWORD=
+```
+
+What to change:
+
+- **`RMV_HTTP_PORT`** — change only if port `7811` is already in use.
+- **`RMV_IMAGE`** — normally leave this unchanged; this README is configured for the **stable/main** channel.
+- **`RMV_NETWORK`** — set this to the existing Docker/Podman network used by your torrent client. `media-net` is only the default.
+- **`RMV_DRY_RUN=true`** — keep this enabled for the first install so RMV validates and records results without resuming or removing torrents.
+- **Torrent client fields** — leave these four values blank when using the browser Installation wizard. Advanced users may fill them in to manage the provider entirely through environment variables.
+
+In `nano`, save with **Ctrl+O**, press **Enter**, then exit with **Ctrl+X**.
+
+### 3. Make sure the shared network exists
+
+Use the **same network name you entered in `.env`**. If you kept the default `media-net`:
+
 Podman:
 
 ```bash
 podman network inspect media-net >/dev/null 2>&1 || podman network create media-net
+```
+
+Docker:
+
+```bash
+docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
+```
+
+If your torrent client already uses another network, do not create `media-net`; set `RMV_NETWORK` to that existing network instead.
+
+### 4. Pull and start RMV
+
+Podman:
+
+```bash
 podman compose --env-file .env -f compose.yaml pull
 podman compose --env-file .env -f compose.yaml up -d
 ```
@@ -280,12 +337,23 @@ podman compose --env-file .env -f compose.yaml up -d
 Docker:
 
 ```bash
-docker network inspect media-net >/dev/null 2>&1 || docker network create media-net
 docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-Then complete Installation at port 7811.
+### 5. Finish setup in the browser
+
+Open:
+
+```text
+http://YOUR-SERVER-IP:7811
+```
+
+For a local install, `http://localhost:7811` also works.
+
+Select your torrent client, enter its API/Web UI connection details, run **Test connection**, review discovered categories/labels/download paths, and save the setup.
+
+Keep RMV in dry-run until Diagnostics shows the correct client, scopes and expected validation results. When you are satisfied, edit `.env` again with `nano .env`, set `RMV_DRY_RUN=false`, and recreate the container so enforcement becomes active.
 
 ## Advanced environment-managed setup
 
