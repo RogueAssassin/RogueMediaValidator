@@ -422,10 +422,17 @@ async def diagnostics():
             "action_states": sorted(settings.action_states),
             "supports_delete_data": service.supports_delete_data,
             "policy_fingerprint": settings.policy_fingerprint,
+            "quarantine_rejected": settings.quarantine_rejected,
+            "quarantined": store.quarantine_count(),
         },
         "service": snapshot,
         "storage": store.stats(),
     }
+
+
+@app.get("/api/quarantine")
+async def quarantine(limit: int = 50):
+    return store.quarantine_recent(max(1, min(limit, 500)))
 
 
 @app.get("/api/validations")
