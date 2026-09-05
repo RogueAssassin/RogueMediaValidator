@@ -90,7 +90,7 @@ Next:
 
 **Exit criteria:** deep validation is opt-in, bounded, auditable, and cannot silently delete data outside configured RMV behavior.
 
-## 0.8.0 — Universal media automation feedback — active testing
+## 0.8.0 — Universal media automation feedback ✅
 
 **Goal:** let RMV participate cleanly in automated TV/movie acquisition workflows without coupling the core integration model to Radarr or Sonarr.
 
@@ -115,7 +115,7 @@ Planned:
 
 **Exit criteria:** a rejected download can be reported to any supported upstream automation provider without creating uncontrolled retry loops, coupling RMV to the Arr ecosystem, or breaking standalone RMV operation.
 
-## 0.9.0 — Notifications, ecosystem and operations
+## 0.9.0 — Notifications, ecosystem and operations — active testing
 
 **Goal:** make RMV observable and easy to integrate into a complete media stack.
 
