@@ -15,7 +15,7 @@ chmod 600 .env
 
 ## 2. Edit the environment file
 
-Do this before the first start:
+Do this before the first start. The generated `.env` contains comments explaining every supported administrator setting and its safe/default behavior.
 
 ```bash
 nano .env
