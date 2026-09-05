@@ -261,3 +261,26 @@ button.button{border:0;font:inherit;cursor:pointer}
   .provider-grid,.setup-help,.form-grid{grid-template-columns:1fr}
   .field.full{grid-column:auto}
 }
+
+
+/* 0.6.0 Administration */
+.settings-main{width:min(1180px,100%);padding-top:34px}
+.settings-summary,.settings-scopes{margin-bottom:12px}
+.settings-help{margin:0 0 16px;color:var(--muted2);max-width:820px}
+.scope-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.scope-option{
+  display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid var(--line);
+  border-radius:10px;background:var(--surface);cursor:pointer;
+}
+.scope-option:hover{border-color:#40516a;background:var(--panel-hi)}
+.scope-option input{width:17px;height:17px;accent-color:var(--purple)}
+.scope-option span{display:grid}
+.scope-option strong{font-size:13px;color:var(--text);overflow-wrap:anywhere}
+.scope-option small{font-size:11px;color:var(--muted)}
+.settings-warning{
+  margin-top:14px;padding:11px 12px;border:1px solid rgba(242,184,75,.22);
+  border-radius:9px;background:rgba(70,51,18,.18);color:#d9c18e;font-size:12px;
+}
+.setup-note strong{display:block;color:#d8e2f1;margin-bottom:4px}
+.setup-note p{margin:0;color:var(--muted2)}
+@media(max-width:760px){.scope-picker{grid-template-columns:1fr}}
