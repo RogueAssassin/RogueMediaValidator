@@ -37,6 +37,9 @@ RMV_NETWORK=media-net
 RMV_DRY_RUN=true
 RMV_QUARANTINE_REJECTED=false
 RMV_AUTOMATION_PROVIDERS_JSON=
+RMV_NOTIFICATION_TARGETS_JSON=
+RMV_AUDIT_RETENTION_DAYS=90
+RMV_AUDIT_RETENTION_MAX_RECORDS=10000
 RMV_SETUP_UNLOCK=false
 RMV_ADMIN_USERNAME=operator
 RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
@@ -220,6 +223,35 @@ After editing `.env`, recreate RMV, open **Settings**, and use **Test integratio
 Radarr/Sonarr feedback matches the torrent hash against the upstream queue `downloadId`. RMV requests upstream blocklisting/retry handling but uses `removeFromClient=false`, keeping the torrent-client action under RMV control.
 
 Automation feedback is only sent after a rejected torrent has an RMV enforcement outcome such as a successful delete, limited delete, or quarantine hold. Provider failures are audited and isolated.
+
+## 0.9.0 monitoring and notifications
+
+For external monitoring, use:
+
+```text
+http://YOUR-SERVER-IP:7811/healthz
+http://YOUR-SERVER-IP:7811/readyz
+http://YOUR-SERVER-IP:7811/api/status
+```
+
+Use `/healthz` for process liveness and `/readyz` when the monitor should fail unless RMV is actually operational with a connected torrent client and managed scopes.
+
+Optional webhook notifications:
+
+```env
+RMV_NOTIFICATION_TARGETS_JSON='[{"provider":"webhook","name":"Ops","url":"http://notifications:9000/rmv","token":"OPTIONAL-TOKEN","events":["rejected","failed","limited","quarantined"]}]'
+```
+
+After recreation, open **Settings** and use **Test notifications**. This sends an explicit `rmv.test` event.
+
+Audit retention:
+
+```env
+RMV_AUDIT_RETENTION_DAYS=90
+RMV_AUDIT_RETENTION_MAX_RECORDS=10000
+```
+
+Set either value to `0` to disable that limit. Validation-history cleanup does not remove RMV setup/runtime settings.
 
 ## Advanced environment configuration
 
