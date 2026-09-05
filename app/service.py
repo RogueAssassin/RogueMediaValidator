@@ -3,6 +3,7 @@ import logging
 import time
 from datetime import UTC, datetime
 
+from .automation.manager import AutomationManager
 from .clients.base import TorrentClient
 from .config import Settings
 from .store import Store
@@ -54,11 +55,13 @@ class ValidationService:
         store: Store,
         client: TorrentClient | None,
         client_name: str = "",
+        automation: AutomationManager | None = None,
     ):
         self.settings = settings
         self.store = store
         self.client = client
         self.client_name = client_name.strip().lower()
+        self.automation = automation
         self.running = False
         self.last_error: str | None = None
         self.last_cycle_at: str | None = None
@@ -357,6 +360,25 @@ class ValidationService:
                     action_error=action_error,
                 )
 
+                if (
+                    result.status == "blocked"
+                    and actionable
+                    and self.automation is not None
+                    and self.automation.configured
+                    and action_status in {"success", "limited", "held"}
+                ):
+                    await self.automation.report_rejection(
+                        {
+                            "torrent_hash": torrent_hash,
+                            "torrent_name": result.torrent_name,
+                            "provider": self.client_name,
+                            "scopes": result.category,
+                            "reason": result.reason,
+                            "action": action,
+                            "action_status": action_status,
+                        }
+                    )
+
     async def loop(self):
         self.running = True
         while self.running:
@@ -403,9 +425,18 @@ class ValidationService:
             "policy_fingerprint": self.settings.policy_fingerprint,
             "quarantine_rejected": self.settings.quarantine_rejected,
             "quarantined": self.store.quarantine_count(),
+            "automation_configured": bool(self.automation and self.automation.configured),
+            "automation_instances": (
+                len(self.automation.providers) if self.automation is not None else 0
+            ),
+            "automation_last_results": (
+                self.automation.last_results if self.automation is not None else []
+            ),
         }
 
     async def close(self):
+        if self.automation is not None:
+            await self.automation.close()
         async with self._client_lock:
             if self.client is not None:
                 await self.client.close()
