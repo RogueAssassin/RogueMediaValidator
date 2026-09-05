@@ -1,9 +1,12 @@
 import asyncio
 import logging
+import secrets
 from contextlib import asynccontextmanager, suppress
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -21,6 +24,37 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 store = Store(settings.data_dir / "rmv.db")
 templates = Jinja2Templates(directory="app/templates")
+admin_security = HTTPBasic(auto_error=False)
+
+
+def admin_credentials_configured() -> bool:
+    return bool(settings.admin_username and settings.admin_password)
+
+
+def require_admin(
+    credentials: Annotated[HTTPBasicCredentials | None, Depends(admin_security)],
+):
+    if not admin_credentials_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Administrative settings are disabled. Set RMV_ADMIN_USERNAME and "
+                "RMV_ADMIN_PASSWORD in .env, then recreate the container."
+            ),
+        )
+
+    valid = bool(
+        credentials
+        and secrets.compare_digest(credentials.username, settings.admin_username)
+        and secrets.compare_digest(credentials.password, settings.admin_password)
+    )
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid administrative credentials.",
+            headers={"WWW-Authenticate": 'Basic realm="RogueMediaValidator"'},
+        )
+    return credentials.username
 
 
 def provider_meta(provider_id: str) -> dict | None:
@@ -97,6 +131,10 @@ class SetupPayload(BaseModel):
     password: str = ""
 
 
+class ManagedScopesPayload(BaseModel):
+    scopes: list[str]
+
+
 def public_client_config() -> dict | None:
     config, source = resolved_client_config()
     if not config:
@@ -154,6 +192,29 @@ async def dashboard(request: Request):
             "settings": settings,
             "version": __version__,
             "health": health_payload(),
+        },
+    )
+
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(
+    request: Request,
+    _admin: Annotated[str, Depends(require_admin)],
+):
+    available = sorted(
+        set(service.discovered_scopes) | set(service.managed_scopes)
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="settings.html",
+        context={
+            "version": __version__,
+            "settings": settings,
+            "health": health_payload(),
+            "available_scopes": available,
+            "scope_locked": bool(settings.scopes),
+            "admin_username": settings.admin_username,
+            "client_config": public_client_config(),
         },
     )
 
@@ -265,6 +326,68 @@ async def setup_save(payload: SetupPayload):
 @app.get("/api/setup/providers")
 async def setup_providers():
     return CLIENT_PROVIDERS
+
+
+@app.get("/api/admin/settings")
+async def admin_settings(_admin: Annotated[str, Depends(require_admin)]):
+    config = public_client_config()
+    return {
+        "version": __version__,
+        "admin_username": settings.admin_username,
+        "dry_run": settings.dry_run,
+        "torrent_client": service.client_name or None,
+        "config_source": config.get("source") if config else "none",
+        "scope_name": service.scope_name,
+        "scope_source": service.scope_source,
+        "scope_locked_by_environment": bool(settings.scopes),
+        "environment_scopes": sorted(settings.scopes),
+        "managed_scopes": sorted(service.managed_scopes),
+        "discovered_scopes": service.discovered_scopes,
+    }
+
+
+@app.put("/api/admin/scopes")
+async def admin_scopes(
+    payload: ManagedScopesPayload,
+    _admin: Annotated[str, Depends(require_admin)],
+):
+    if settings.scopes:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Managed scopes are controlled by RMV_TORRENT_SCOPES. "
+                "Clear that environment value before using UI-managed scopes."
+            ),
+        )
+    if not service.configured:
+        raise HTTPException(status_code=409, detail="Torrent client is not configured.")
+
+    requested = {str(value).strip().lower() for value in payload.scopes if str(value).strip()}
+    if "*" in requested:
+        raise HTTPException(
+            status_code=400,
+            detail="The wildcard scope can only be configured explicitly through the environment.",
+        )
+
+    allowed = {
+        str(value).strip().lower()
+        for value in [*service.discovered_scopes, *service.managed_scopes]
+        if str(value).strip()
+    }
+    unknown = sorted(requested - allowed)
+    if unknown:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown or undiscovered scopes: {', '.join(unknown)}",
+        )
+
+    service.set_managed_scopes(sorted(requested))
+    return {
+        "ok": True,
+        "scope_source": service.scope_source,
+        "managed_scopes": sorted(service.managed_scopes),
+        "fail_closed": not bool(service.managed_scopes),
+    }
 
 
 @app.get("/api/health")
