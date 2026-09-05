@@ -69,6 +69,8 @@ chmod 600 .env
 
 ### 2. Edit `.env` before starting
 
+The supplied `.env.example` is a fully commented administrator reference. It explains each setting, safe defaults, provider examples, and which values should normally be left unchanged.
+
 ```bash
 nano .env
 ```
