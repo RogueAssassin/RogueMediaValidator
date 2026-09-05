@@ -208,6 +208,14 @@ aria2
 
 Environment configuration takes precedence over browser-persisted provider configuration.
 
+## Backup, upgrade and rollback
+
+RMV keeps its persistent state in the named `roguemediavalidator-data` volume. Before an upgrade or rollback, stop RMV and back up that volume with your Docker/Podman volume-backup method.
+
+Do not remove the volume during a normal upgrade. Pull the new image and recreate the container while keeping the same volume.
+
+For rollback, restore the saved volume if the newer release performed a database change that is not compatible with the older image. Keep a backup until the upgraded instance has completed a successful client cycle and `/readyz` returns HTTP 200.
+
 ## Reconfiguration
 
 To intentionally unlock browser setup:
