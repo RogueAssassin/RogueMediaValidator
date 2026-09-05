@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Testing](https://img.shields.io/badge/TESTING-0.7.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
+[![Testing](https://img.shields.io/badge/TESTING-0.8.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -28,7 +28,7 @@ The validation engine is provider-neutral. Every torrent application is isolated
 
 ## Testing channel
 
-This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **Testing is now advancing through v0.7.0**, focused on real quarantine holds and the foundation for optional deep/post-download media validation.
+This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **Testing is now advancing through v0.8.0**, focused on provider-neutral TV/movie automation feedback, multiple automation instances, Radarr/Sonarr first-class adapters, and a generic webhook path for other/custom automation.
 
 Testing image:
 
@@ -387,6 +387,52 @@ Quarantine takes precedence over `RMV_REMOVE_REJECTED` only when explicitly enab
 
 This first 0.7.0 slice is the safe hold/audit foundation. Optional ffprobe/signature validation and operator recheck/release workflows remain part of the 0.7.x testing cycle.
 
+## 0.8.0 universal media automation testing
+
+RMV's automation layer is intentionally separate from the torrent-client layer. Radarr and Sonarr are first-class adapters, but they are not hard-coded into the validator. Additional/custom TV/movie automation can receive the same rejection event through the generic webhook adapter.
+
+Configure one or more instances with:
+
+```env
+RMV_AUTOMATION_PROVIDERS_JSON=[{"provider":"radarr","name":"Movies","url":"http://radarr:7878","api_key":"RADARR-API-KEY"},{"provider":"sonarr","name":"TV","url":"http://sonarr:8989","api_key":"SONARR-API-KEY"}]
+```
+
+Multiple instances are supported. For example, separate Sonarr instances for TV and anime can both be configured.
+
+Generic/custom automation:
+
+```env
+RMV_AUTOMATION_PROVIDERS_JSON=[{"provider":"webhook","name":"Custom TV automation","url":"http://automation:9000/rmv","token":"OPTIONAL-BEARER-TOKEN"}]
+```
+
+The generic webhook receives a JSON event beginning with:
+
+```json
+{
+  "event": "rmv.rejected",
+  "torrent_hash": "...",
+  "torrent_name": "...",
+  "provider": "qbittorrent",
+  "scopes": "tv",
+  "reason": "...",
+  "action": "quarantine"
+}
+```
+
+For Radarr/Sonarr, RMV correlates the torrent hash to the queue `downloadId`. On a match, RMV tells the automation system to blocklist/reject the queue item while using `removeFromClient=false`, because RMV itself remains responsible for the torrent-client action. This prevents double-deletion.
+
+Automation feedback runs only after RMV has recorded a successful/held/limited enforcement action. Feedback failures are isolated and audited; they cannot change the validation result or undo RMV's torrent decision.
+
+Successfully reported rejection feedback is deduplicated per torrent hash/provider/instance to reduce the risk of retry/blocklist loops.
+
+Use the authenticated **Settings** page to test all configured automation instances. Feedback history is available at:
+
+```text
+GET /api/automation/events
+```
+
+This endpoint is protected by the same RMV admin credentials.
+
 ## Advanced environment-managed setup
 
 Browser setup can be skipped:
@@ -576,7 +622,7 @@ The provider layer is complete. Development now moves through staged operator, v
 | --- | --- |
 | **0.6.0** | Authenticated administration, UI-managed scopes, validation detail and operator safety |
 | **0.7.0** | Quarantine workflows and optional post-download media validation |
-| **0.8.0** | Universal TV/movie automation integrations, including Radarr/Sonarr, provider-neutral feedback and retry/rejection workflows |
+| **0.8.0** | Universal TV/movie automation integrations: Radarr/Sonarr adapters, generic webhooks, multi-instance feedback, correlation and loop protection |
 | **0.9.0** | Notifications, RogueDashboard integration, health, audit retention and operational polish |
 | **0.9.x RC** | Feature freeze, upgrade/security testing, documentation and release hardening |
 | **1.0.0** | First production-ready stable contract |
