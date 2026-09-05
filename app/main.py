@@ -330,6 +330,15 @@ async def test_setup_payload(payload: SetupPayload, *, keep_client: bool = False
 
 @app.post("/api/setup/test")
 async def setup_test(payload: SetupPayload):
+    if service.configured and not settings.setup_unlock:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Setup is locked after configuration. Set RMV_SETUP_UNLOCK=true "
+                "and recreate the container to test a different provider endpoint."
+            ),
+        )
+
     try:
         result, _ = await test_setup_payload(payload)
         return {"ok": True, **result}
@@ -341,6 +350,15 @@ async def setup_test(payload: SetupPayload):
 
 @app.post("/api/setup/save")
 async def setup_save(payload: SetupPayload):
+    if environment_client_config():
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Torrent client configuration is owned by RMV_TORRENT_* environment "
+                "settings. Clear those values and recreate RMV before using browser setup."
+            ),
+        )
+
     if service.configured and not settings.setup_unlock:
         raise HTTPException(
             status_code=403,
