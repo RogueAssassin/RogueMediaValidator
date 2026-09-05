@@ -28,6 +28,13 @@ body{
     var(--bg);
 }
 a{color:inherit}
+.skip-link{
+  position:fixed;left:12px;top:10px;z-index:1000;padding:8px 12px;border-radius:8px;
+  background:var(--text);color:var(--bg);font-weight:800;text-decoration:none;
+  transform:translateY(-150%);transition:transform .12s ease;
+}
+.skip-link:focus{transform:translateY(0)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 .app{min-height:100vh}
 .topbar{
   min-height:74px;
@@ -70,6 +77,9 @@ a{color:inherit}
 }
 .button.secondary{border:1px solid var(--line);background:var(--panel);color:#d8e2f1}
 .button.secondary:hover{border-color:#40516a;background:var(--panel-hi)}
+.button:focus-visible,.provider-card:focus-visible,.scope-option:has(input:focus-visible){
+  outline:2px solid var(--cyan);outline-offset:3px;
+}
 main{width:min(1500px,100%);margin:0 auto;padding:clamp(22px,3vw,40px)}
 .hero{display:flex;justify-content:space-between;align-items:end;margin:2px 0 22px}
 .eyebrow,.section-label{
@@ -152,6 +162,9 @@ code{
 .technical-copy p{margin:5px 0 8px;color:#b7c2d2;overflow-wrap:anywhere}
 .technical-copy small{color:var(--muted)}
 
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
 @media(max-width:900px){
   .topbar{position:static;align-items:flex-start}
   .topbar-actions{max-width:440px}
