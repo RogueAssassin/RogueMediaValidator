@@ -1,43 +1,49 @@
 # Architecture
 
-RogueMediaValidator 0.5.x uses a provider-neutral validation core.
+RogueMediaValidator uses a provider-neutral core.
 
 ```text
-                    +--> qBittorrent Web API
-                    |
-                    +--> Transmission RPC
-                    |
-Automation -> torrent client adapter -> normalized RMV model -> validator
-                    |
-                    +--> Deluge Web JSON-RPC
-                    |
-                    +--> rTorrent XML-RPC
-                    |
-                    +--> aria2 JSON-RPC
+Torrent client API
+      |
+      v
+Torrent adapter -> normalized torrent/file model -> validation policy
+                                                   |
+                     +-----------------------------+------------------+
+                     |                             |                  |
+                     v                             v                  v
+               enforcement                  automation feedback   notifications
+                     |                             |                  |
+                     v                             v                  v
+             torrent provider              Radarr/Sonarr/webhook   webhook targets
+                     |
+                     v
+                  SQLite
 ```
 
-Every provider adapter must expose:
+## Torrent-client adapters
+
+Every torrent adapter exposes the common operations required by the core:
 
 - version;
 - scopes;
 - torrents;
 - files;
+- pause;
 - resume;
 - delete;
-- `supports_delete_data`.
+- payload-deletion capability.
 
-## Normalized torrent model
-
-Provider-specific data is converted into:
+Supported adapters:
 
 ```text
-hash
-name
-_scopes[]
-state
+qBittorrent
+Transmission
+Deluge
+rTorrent / ruTorrent
+aria2
 ```
 
-The validator never needs provider-specific API objects.
+Provider-specific metadata is normalized before it reaches the validator.
 
 ## Scope mapping
 
@@ -49,99 +55,65 @@ rTorrent     -> custom1, fallback directory
 aria2        -> dir
 ```
 
-## State mapping
+Scope ownership is explicit. Environment configuration has priority, UI-managed scopes are persisted, and automatic bootstrap occurs only once.
 
-Providers normalize their own lifecycle states into RMV states such as:
+## Enforcement
 
-```text
-stoppeddl
-downloading
-queueddl
-checkingdl
-uploading
-stoppedup
-```
+The validation result is persisted before optional integrations run.
 
-The shared action-state policy then decides whether resume/delete is allowed.
+Approved actionable downloads may be resumed. Rejected actionable downloads can be quarantined or removed. Providers that cannot guarantee local payload deletion record a limited action rather than full success.
 
-## Data-deletion capability
+Completed/seeding/upload-only torrents remain inspection-only.
 
-Provider adapters declare:
+## Media automation
 
-```text
-supports_delete_data = true | false
-```
+Media automation is separate from torrent enforcement.
 
-True:
+Radarr and Sonarr are adapters, not core dependencies. Generic webhooks provide a universal integration path for other TV/movie automation systems.
 
-```text
-qBittorrent
-Transmission
-Deluge
-```
+Automation feedback failures are isolated from the validation/enforcement decision.
 
-False:
+## Notifications
 
-```text
-rTorrent / ruTorrent
-aria2
-```
-
-When data deletion is requested but unsupported, RMV removes the torrent entry, records a limited action, preserves the warning in SQLite, and never claims full payload deletion occurred.
-
-## Setup
-
-```text
-unconfigured
-   |
-   v
-/setup
-   |
-   +--> provider selection
-   +--> provider-specific endpoint/credentials
-   +--> connection test
-   +--> capability discovery
-   +--> scope discovery
-   +--> save
-   |
-   v
-dashboard
-```
-
-Setup persists in the RMV data volume and locks after configuration.
-
-## Container boundary
-
-RMV talks only to the selected torrent application's API.
-
-Docker/Podman sockets are intentionally excluded.
+Operational notifications are best-effort and run after the validation outcome is known. Notification delivery failures are audited separately and cannot alter a torrent decision.
 
 ## Persistence
 
 SQLite stores:
 
-- setup configuration;
-- provider-specific scope bootstrap;
+- provider setup;
+- managed-scope state;
 - validation decisions;
-- action status;
-- action error/warning;
-- policy fingerprint.
+- enforcement outcomes and errors;
+- quarantine records;
+- automation feedback;
+- notification delivery history;
+- runtime settings.
+
+Validation history can be exported and pruned without deleting runtime/provider configuration.
+
+## Operational endpoints
+
+```text
+/healthz    liveness
+/readyz     readiness
+/api/status compact integration status
+```
+
+## Container boundary
+
+RMV communicates only with configured application APIs.
+
+Docker and Podman sockets are intentionally excluded, and the container drops Linux capabilities with `no-new-privileges`.
 
 ## Source layout
 
 ```text
-app/clients/base.py
-app/clients/factory.py
-app/clients/qbittorrent.py
-app/clients/transmission.py
-app/clients/deluge.py
-app/clients/rtorrent.py
-app/clients/aria2.py
-
-app/service.py
-app/validator.py
-app/store.py
-app/main.py
+app/clients/         torrent-client adapters
+app/automation/      media-automation adapters
+app/notifications/   notification targets
+app/validator.py     payload policy
+app/service.py       validation/enforcement orchestration
+app/store.py         SQLite persistence
+app/main.py          web UI and API
 ```
-
-There is no longer a separate qBittorrent compatibility service module.
