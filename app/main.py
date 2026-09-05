@@ -448,8 +448,8 @@ async def automation_test(_admin: Annotated[str, Depends(require_admin)]):
 
 @app.get("/api/automation/events")
 async def automation_events(
+    _admin: Annotated[str, Depends(require_admin)],
     limit: int = 50,
-    _admin: Annotated[str, Depends(require_admin)] = None,
 ):
     return store.automation_events(max(1, min(limit, 500)))
 
