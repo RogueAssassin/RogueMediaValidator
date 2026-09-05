@@ -44,12 +44,10 @@ class Settings(BaseSettings):
     auto_resume_valid: bool = True
     quarantine_rejected: bool = False
 
-    # 0.8.0 provider-neutral TV/movie automation integrations.
-    # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
+        # JSON array supports multiple Radarr/Sonarr instances plus generic webhooks.
     automation_providers_json: str = ""
 
-    # 0.9.0 operations / notification layer.
-    notification_targets_json: str = ""
+        notification_targets_json: str = ""
     audit_retention_days: int = 90
     audit_retention_max_records: int = 10000
 
