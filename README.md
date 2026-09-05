@@ -433,6 +433,54 @@ GET /api/automation/events
 
 This endpoint is protected by the same RMV admin credentials.
 
+## 0.9.0 operations and monitoring
+
+RMV 0.9.0 adds operational endpoints designed for external monitoring and Rogue ecosystem integration:
+
+```text
+GET /healthz
+GET /readyz
+GET /api/status
+```
+
+`/healthz` confirms the RMV process is alive. `/readyz` only returns HTTP 200 when RMV is configured, has completed a successful client cycle, has no active client error, and has at least one managed scope. Otherwise it returns HTTP 503. `/api/status` is a compact, no-secret operational payload suitable for RogueDashboard and similar consumers.
+
+Optional notification webhooks are configured through:
+
+```env
+RMV_NOTIFICATION_TARGETS_JSON='[{"provider":"webhook","name":"Ops","url":"http://notifications:9000/rmv","token":"OPTIONAL-TOKEN","events":["rejected","failed","limited","quarantined"]}]'
+```
+
+Supported notification event names are:
+
+```text
+approved
+rejected
+failed
+limited
+quarantined
+```
+
+Notifications are best-effort and isolated from validation. A failed webhook cannot approve a blocked torrent, reverse a quarantine/delete decision, or stop another notification target from being attempted. Delivery outcomes are audited separately.
+
+The authenticated Settings page can send an explicit `rmv.test` event to every configured notification target.
+
+Validation history retention defaults to:
+
+```env
+RMV_AUDIT_RETENTION_DAYS=90
+RMV_AUDIT_RETENTION_MAX_RECORDS=10000
+```
+
+Either limit can be disabled with `0`. Cleanup runs periodically and can also be triggered from Settings. Runtime settings, provider setup state, quarantine records, automation feedback and notification delivery history are not removed by validation-audit cleanup.
+
+Authenticated audit exports:
+
+```text
+GET /api/admin/audit/export.csv
+GET /api/admin/audit/export.json
+```
+
 ## Advanced environment-managed setup
 
 Browser setup can be skipped:
