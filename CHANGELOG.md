@@ -1,8 +1,8 @@
 # Changelog
 
-## 1.0.0 - release candidate - 2026-09-05
+## 1.0.0 - 2026-09-05
 
-First production release candidate.
+First production release.
 
 ### Core
 
