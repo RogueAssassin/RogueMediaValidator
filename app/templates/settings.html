@@ -111,6 +111,45 @@
         <a class="button secondary" href="/api/quarantine" target="_blank" rel="noopener">View quarantine JSON</a>
       </section>
 
+      <section class="panel settings-summary">
+        <div class="panel-title">
+          <div>
+            <span class="section-label">0.8.0 media automation</span>
+            <h2>Automation providers</h2>
+          </div>
+          <span class="state {{ 'ok' if automation_instances else 'neutral' }}">{{ automation_instances|length }} configured</span>
+        </div>
+
+        {% if automation_config_error %}
+          <div class="setup-result error">
+            <strong>Configuration error</strong>
+            <span>{{ automation_config_error }}</span>
+          </div>
+        {% elif automation_instances %}
+          <div class="provider-grid">
+            {% for item in automation_instances %}
+              <article class="provider-card selected">
+                <div class="provider-card-head">
+                  <strong>{{ item.name }}</strong>
+                  <span class="provider-badge supported">{{ item.provider }}</span>
+                </div>
+                <p>{{ item.display_name }}</p>
+                <small>Provider-neutral automation feedback instance</small>
+              </article>
+            {% endfor %}
+          </div>
+          <div class="setup-actions">
+            <a class="button secondary" href="/api/automation/events" target="_blank" rel="noopener">Feedback events</a>
+            <button class="button primary" type="button" id="automation-test">Test integrations</button>
+          </div>
+          <div id="automation-result" class="setup-result" hidden></div>
+        {% else %}
+          <p class="settings-help">
+            No media automation providers are configured. Add Radarr, Sonarr or generic webhook instances through <code>RMV_AUTOMATION_PROVIDERS_JSON</code>.
+          </p>
+        {% endif %}
+      </section>
+
       <section class="panel setup-help">
         <div>
           <span class="section-label">Safety model</span>
@@ -125,6 +164,30 @@
       </section>
     </main>
   </div>
+
+  <script>
+    const automationButton = document.getElementById('automation-test');
+    const automationResult = document.getElementById('automation-result');
+
+    automationButton?.addEventListener('click', async () => {
+      automationResult.hidden = false;
+      automationResult.className = 'setup-result working';
+      automationResult.innerHTML = '<strong>Testing…</strong><span>Checking configured automation providers.</span>';
+      try {
+        const response = await fetch('/api/admin/automation/test', {method: 'POST'});
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'Automation test failed.');
+        const lines = payload.results.map((item) =>
+          item.instance + ': ' + (item.ok ? 'OK (' + item.version + ')' : 'FAILED - ' + item.error)
+        );
+        automationResult.className = payload.results.every((item) => item.ok) ? 'setup-result success' : 'setup-result error';
+        automationResult.innerHTML = '<strong>Integration test complete</strong><span>' + (lines.join('<br>') || 'No providers configured.') + '</span>';
+      } catch (error) {
+        automationResult.className = 'setup-result error';
+        automationResult.innerHTML = '<strong>Test failed</strong><span>' + error.message + '</span>';
+      }
+    });
+  </script>
 
   {% if not scope_locked %}
   <script>
