@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator 0.5.x uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
+RogueMediaValidator 0.6.x testing uses one `compose.yaml` for both Docker and Podman and supports guided browser setup for all common headless torrent clients.
 
 ## 1. Create the deployment
 
@@ -8,10 +8,18 @@ RogueMediaValidator 0.5.x uses one `compose.yaml` for both Docker and Podman and
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
 chmod 600 .env
 ```
+
+Before starting RMV, edit the environment file:
+
+```bash
+nano .env
+```
+
+Confirm `RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:testing`, set `RMV_NETWORK` to the network shared with your torrent client, and keep `RMV_DRY_RUN=true` for initial validation. Save with **Ctrl+O**, press **Enter**, then exit with **Ctrl+X**.
 
 Keep the torrent client blank for browser setup:
 
