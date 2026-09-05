@@ -314,3 +314,98 @@ async def test_quarantine_is_opt_in_and_existing_delete_path_remains_default(tmp
     assert client.paused == []
     assert client.deleted == [("quarantine-me", True)]
     assert store.quarantine_count() == 0
+
+
+class RecordingNotifications:
+    configured = True
+
+    def __init__(self):
+        self.targets = [object()]
+        self.last_results = []
+        self.events = []
+
+    async def emit(self, event_type, payload):
+        self.events.append((event_type, payload))
+        self.last_results = [{"status": "sent"}]
+        return self.last_results
+
+    async def close(self):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_dry_run_rejection_emits_rejected_notification(tmp_path):
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv",
+        dry_run=True,
+    )
+    store = Store(tmp_path / "rmv.db")
+    client = QuarantineClient()
+    notifications = RecordingNotifications()
+    service = ValidationService(
+        cfg,
+        store,
+        client,
+        "qbittorrent",
+        notifications=notifications,
+    )
+
+    await service.run_once()
+
+    assert notifications.events[0][0] == "rejected"
+    payload = notifications.events[0][1]
+    assert payload["torrent_hash"] == "quarantine-me"
+    assert payload["action_status"] == "audit"
+    assert payload["dry_run"] is True
+
+
+@pytest.mark.asyncio
+async def test_quarantine_emits_quarantined_notification(tmp_path):
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv",
+        dry_run=False,
+        quarantine_rejected=True,
+    )
+    store = Store(tmp_path / "rmv.db")
+    client = QuarantineClient()
+    notifications = RecordingNotifications()
+    service = ValidationService(
+        cfg,
+        store,
+        client,
+        "qbittorrent",
+        notifications=notifications,
+    )
+
+    await service.run_once()
+
+    assert notifications.events[0][0] == "quarantined"
+    assert notifications.events[0][1]["action"] == "quarantine"
+    assert notifications.events[0][1]["action_status"] == "held"
+
+
+@pytest.mark.asyncio
+async def test_limited_cleanup_emits_limited_notification(tmp_path):
+    cfg = Settings(
+        _env_file=None,
+        torrent_scopes="tv",
+        dry_run=False,
+        delete_rejected_data=True,
+    )
+    store = Store(tmp_path / "rmv.db")
+    client = LimitedDeleteClient()
+    notifications = RecordingNotifications()
+    service = ValidationService(
+        cfg,
+        store,
+        client,
+        "rtorrent",
+        notifications=notifications,
+    )
+
+    await service.run_once()
+
+    assert notifications.events[0][0] == "limited"
+    assert notifications.events[0][1]["action_status"] == "limited"
