@@ -108,6 +108,45 @@ def test_explicit_environment_scopes_override_bootstrap(tmp_path):
     assert service.scope_source == "environment"
 
 
+def test_ui_managed_scopes_override_bootstrap_and_persist(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="", torrent_auto_bootstrap_scopes=True)
+    store = Store(tmp_path / "rmv.db")
+    store.set_bootstrap_scopes(["movies", "tv"], "transmission")
+    service = ValidationService(cfg, store, client=None, client_name="transmission")
+
+    service.set_managed_scopes(["TV"])
+
+    assert service.managed_scopes == frozenset({"tv"})
+    assert service.scope_source == "ui"
+
+    reloaded = ValidationService(cfg, Store(tmp_path / "rmv.db"), client=None, client_name="transmission")
+    assert reloaded.managed_scopes == frozenset({"tv"})
+    assert reloaded.scope_source == "ui"
+
+
+def test_empty_ui_scope_selection_stays_fail_closed(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="", torrent_auto_bootstrap_scopes=True)
+    store = Store(tmp_path / "rmv.db")
+    service = ValidationService(cfg, store, client=None, client_name="qbittorrent")
+
+    service.set_managed_scopes([])
+    service.discovered_scopes = ["movies", "tv"]
+    service._maybe_bootstrap_scopes()
+
+    assert service.managed_scopes == frozenset()
+    assert service.scope_source == "ui"
+    assert store.scope_bootstrap_complete("qbittorrent") is False
+
+
+def test_environment_scopes_cannot_be_overridden_by_ui(tmp_path):
+    cfg = Settings(_env_file=None, torrent_scopes="movies")
+    store = Store(tmp_path / "rmv.db")
+    service = ValidationService(cfg, store, client=None, client_name="qbittorrent")
+
+    with pytest.raises(ValueError, match="controlled by RMV_TORRENT_SCOPES"):
+        service.set_managed_scopes(["tv"])
+
+
 def test_auto_bootstrap_can_be_disabled(tmp_path):
     cfg = Settings(_env_file=None, torrent_scopes="", torrent_auto_bootstrap_scopes=False)
     store = Store(tmp_path / "rmv.db")
