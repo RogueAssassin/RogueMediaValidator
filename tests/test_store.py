@@ -115,3 +115,21 @@ def test_bootstrap_scopes_persist_across_store_instances(tmp_path: Path):
     second = Store(db_path)
     assert second.scope_bootstrap_complete("qbittorrent") is True
     assert second.bootstrap_scopes("qbittorrent") == frozenset({"movies", "tv"})
+
+
+def test_manual_scopes_preserve_explicit_empty_selection(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    assert store.manual_scopes("qbittorrent") is None
+
+    store.set_manual_scopes([], "qbittorrent")
+
+    assert store.manual_scopes("qbittorrent") == frozenset()
+
+
+def test_manual_scopes_are_provider_isolated(tmp_path: Path):
+    store = Store(tmp_path / "rmv.db")
+    store.set_manual_scopes(["TV", "movies", "tv"], "qbittorrent")
+    store.set_manual_scopes(["archive"], "transmission")
+
+    assert store.manual_scopes("qbittorrent") == frozenset({"tv", "movies"})
+    assert store.manual_scopes("transmission") == frozenset({"archive"})
