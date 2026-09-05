@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     dry_run: bool = True
     log_level: str = "INFO"
     setup_unlock: bool = False
+    admin_username: str = ""
+    admin_password: str = ""
 
     torrent_client: str = ""
     torrent_url: str = ""
