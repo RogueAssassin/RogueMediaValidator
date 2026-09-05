@@ -13,7 +13,7 @@
   </tr>
 </table>
 
-[![Release](https://img.shields.io/badge/RELEASE-0.5.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator)
+[![Testing](https://img.shields.io/badge/TESTING-0.6.0-00cbe6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/tree/testing)
 [![GHCR](https://img.shields.io/badge/GHCR-LATEST-5c6ac4?style=for-the-badge&logo=github&logoColor=white&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/pkgs/container/roguemediavalidator)
 [![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/ci.yml?query=branch%3Atesting)
 [![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/roguemediavalidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/roguemediavalidator/actions/workflows/container.yml?query=branch%3Atesting)
@@ -28,7 +28,7 @@ The validation engine is provider-neutral. Every torrent application is isolated
 
 ## Testing channel
 
-This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`.
+This branch is the permanent development/testing channel for changes that are being validated before promotion to `main`. **Testing is now advancing toward v0.6.0**, focused on administration, operator control, UI-managed scopes and clearer validation detail.
 
 Testing image:
 
@@ -535,19 +535,20 @@ podman compose --env-file .env -f compose.yaml up -d --force-recreate
 
 or use the Docker equivalent.
 
-## Next roadmap
+## Road to 1.0
 
-With the provider layer complete, the next work moves above the client adapters:
+The provider layer is complete. Development now moves through staged operator, validation and ecosystem milestones:
 
-- authenticated administrative settings;
-- UI-managed scope selection;
-- structured per-file reason detail;
-- quarantine workflows;
-- post-download ffprobe/signature validation;
-- Radarr/Sonarr failed-download feedback;
-- RogueDashboard integration;
-- notification/webhook events;
-- audit export/retention.
+| Version | Focus |
+| --- | --- |
+| **0.6.0** | Authenticated administration, UI-managed scopes, validation detail and operator safety |
+| **0.7.0** | Quarantine workflows and optional post-download media validation |
+| **0.8.0** | Radarr/Sonarr feedback, retry/blocklist workflow and source context |
+| **0.9.0** | Notifications, RogueDashboard integration, health, audit retention and operational polish |
+| **0.9.x RC** | Feature freeze, upgrade/security testing, documentation and release hardening |
+| **1.0.0** | First production-ready stable contract |
+
+See [MILESTONES.md](MILESTONES.md) for the detailed milestone scope and release gates.
 
 ## Documentation
 
