@@ -1,6 +1,6 @@
 # Installation
 
-RogueMediaValidator uses one `compose.yaml` for both Docker and Podman.
+RogueMediaValidator uses one `compose.yaml` for Docker and Podman and follows the same deployment pattern as RogueDashboard and RogueForge.
 
 ## 1. Create the deployment
 
@@ -8,30 +8,30 @@ RogueMediaValidator uses one `compose.yaml` for both Docker and Podman.
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/roguemediavalidator/testing/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/update.sh -o update.sh
 chmod 600 .env
+chmod +x update.sh
 ```
 
 ## 2. Edit the environment file
-
-Do this before the first start. The generated `.env` contains comments explaining every supported administrator setting and its safe/default behavior.
 
 ```bash
 nano .env
 ```
 
-Recommended first-run values:
+For a first install, keep:
 
 ```env
-RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:testing
+RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:1.1.0-testing
 RMV_HTTP_PORT=7811
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
-RMV_QUARANTINE_REJECTED=false
+RMV_SETUP_UNLOCK=false
 
-RMV_ADMIN_USERNAME=operator
-RMV_ADMIN_PASSWORD=CHANGE-THIS-TO-A-STRONG-PASSWORD
+RMV_ADMIN_USERNAME=
+RMV_ADMIN_PASSWORD=
 
 RMV_TORRENT_CLIENT=
 RMV_TORRENT_URL=
@@ -39,9 +39,7 @@ RMV_TORRENT_USERNAME=
 RMV_TORRENT_PASSWORD=
 ```
 
-Use the network already shared by the torrent client. Leave the torrent-client values blank to use the browser Installation wizard.
-
-Save with **Ctrl+O**, press **Enter**, then exit with **Ctrl+X**.
+Set a strong administrator username/password before exposing Settings. Leave the torrent-client values blank to use browser setup.
 
 ## 3. Start RMV
 
@@ -61,7 +59,7 @@ docker compose --env-file .env -f compose.yaml pull
 docker compose --env-file .env -f compose.yaml up -d
 ```
 
-If you use a different shared network, set `RMV_NETWORK` to that name and do not create `media-net`.
+If your torrent client uses another shared network, set `RMV_NETWORK` to that network instead.
 
 ## 4. Complete browser setup
 
@@ -71,9 +69,9 @@ Open:
 http://YOUR-SERVER-IP:7811
 ```
 
-Choose a supported torrent client:
+Choose a provider and use its container-reachable API/Web UI address.
 
-| Client | Typical container endpoint | Credentials |
+| Client | Typical endpoint | Credentials |
 | --- | --- | --- |
 | qBittorrent | `http://qbittorrent:8080` | Web UI username/password |
 | Transmission | `http://transmission:9091/transmission/rpc` | Optional HTTP Basic auth |
@@ -81,13 +79,11 @@ Choose a supported torrent client:
 | rTorrent / ruTorrent | `http://rutorrent/RPC2` | Optional HTTP Basic auth |
 | aria2 | `http://aria2:6800/jsonrpc` | RPC secret |
 
-The endpoint must be reachable from inside the RMV container.
+Run **Test connection**, confirm the discovered scopes and save.
 
-Run **Test connection** before saving. RMV verifies reachability, authentication, client version, scope discovery, and payload-deletion capability.
+## 5. Validate before enabling enforcement
 
-## 5. Verify scopes and dry-run
-
-Fresh installs default to:
+Fresh installs use:
 
 ```env
 RMV_TORRENT_SCOPES=
@@ -95,23 +91,13 @@ RMV_TORRENT_AUTO_BOOTSTRAP_SCOPES=true
 RMV_DRY_RUN=true
 ```
 
-The first non-empty discovered scope set is persisted. Later newly discovered scopes remain visible but are not silently enrolled.
-
-Open **Settings** with the admin credentials and verify the managed scopes.
-
-When Diagnostics and Settings look correct:
-
-```bash
-nano .env
-```
-
-Set:
+Verify Diagnostics and Settings before changing:
 
 ```env
 RMV_DRY_RUN=false
 ```
 
-Then recreate the container:
+Recreate RMV after any `.env` change:
 
 ```bash
 podman compose --env-file .env -f compose.yaml up -d --force-recreate
@@ -119,45 +105,28 @@ podman compose --env-file .env -f compose.yaml up -d --force-recreate
 
 Use the Docker equivalent when applicable.
 
-## Quarantine
+## Updating
 
-Optional hold behavior:
+Testing channel:
 
-```env
-RMV_QUARANTINE_REJECTED=true
+```bash
+cd /opt/media-server/roguemediavalidator
+./update.sh testing
 ```
 
-When enabled, rejected actionable torrents are paused/stopped and recorded as held instead of being removed.
+Pinned testing image:
 
-Review held items from the dashboard or:
-
-```text
-GET /api/quarantine
+```bash
+./update.sh 1.1.0-testing
 ```
 
-## Media automation
+Stable production:
 
-Radarr/Sonarr example:
-
-```env
-RMV_AUTOMATION_PROVIDERS_JSON='[{"provider":"radarr","name":"Movies","url":"http://radarr:7878","api_key":"RADARR-API-KEY"},{"provider":"sonarr","name":"TV","url":"http://sonarr:8989","api_key":"SONARR-API-KEY"}]'
+```bash
+./update.sh latest
 ```
 
-Generic automation webhook:
-
-```env
-RMV_AUTOMATION_PROVIDERS_JSON='[{"provider":"webhook","name":"Custom automation","url":"http://automation:9000/rmv","token":"OPTIONAL-TOKEN"}]'
-```
-
-Use **Settings → Test integrations** after recreation.
-
-## Operational notifications
-
-```env
-RMV_NOTIFICATION_TARGETS_JSON='[{"provider":"webhook","name":"Ops","url":"http://notifications:9000/rmv","token":"OPTIONAL-TOKEN","events":["rejected","failed","limited","quarantined"]}]'
-```
-
-Use **Settings → Test notifications** to send an `rmv.test` event.
+The updater preserves the existing `.env` and named `roguemediavalidator-data` volume, backs up deployment files, verifies the pulled/running image and checks `/healthz` before completing.
 
 ## Monitoring
 
@@ -167,77 +136,26 @@ Use **Settings → Test notifications** to send an `rmv.test` event.
 /api/status
 ```
 
-Use `/healthz` for liveness and `/readyz` when the monitor should fail unless RMV is fully operational.
+Use `/healthz` for process liveness and `/readyz` when monitoring should fail until RMV is configured, connected and managing scopes.
 
-## Audit retention
+## Persistent data and rollback
 
-```env
-RMV_AUDIT_RETENTION_DAYS=90
-RMV_AUDIT_RETENTION_MAX_RECORDS=10000
-```
+RMV stores persistent state in the named `roguemediavalidator-data` volume.
 
-Set either to `0` to disable that limit.
-
-Authenticated exports are available at:
-
-```text
-/api/admin/audit/export.csv
-/api/admin/audit/export.json
-```
-
-## Advanced environment-managed provider setup
-
-Browser setup can be skipped:
-
-```env
-RMV_TORRENT_CLIENT=qbittorrent
-RMV_TORRENT_URL=http://qbittorrent:8080
-RMV_TORRENT_USERNAME=admin
-RMV_TORRENT_PASSWORD=secret
-```
-
-Supported provider IDs:
-
-```text
-qbittorrent
-transmission
-deluge
-rtorrent
-aria2
-```
-
-Environment configuration takes precedence over browser-persisted provider configuration.
-
-## Backup, upgrade and rollback
-
-RMV keeps its persistent state in the named `roguemediavalidator-data` volume. Before an upgrade or rollback, stop RMV and back up that volume with your Docker/Podman volume-backup method.
-
-Do not remove the volume during a normal upgrade. Pull the new image and recreate the container while keeping the same volume.
-
-For rollback, restore the saved volume if the newer release performed a database change that is not compatible with the older image. Keep a backup until the upgraded instance has completed a successful client cycle and `/readyz` returns HTTP 200.
+Do not use `compose down -v` for a normal upgrade. Back up the volume before a release that changes the database contract, and retain that backup until the upgraded instance has completed a successful client cycle.
 
 ## Reconfiguration
 
-To intentionally unlock browser setup:
+To intentionally unlock browser provider setup:
 
 ```env
 RMV_SETUP_UNLOCK=true
 ```
 
-Recreate RMV, make the change, then return it to:
-
-```env
-RMV_SETUP_UNLOCK=false
-```
-
-and recreate again.
-
-## Applying .env changes
-
-A normal restart does not reload container environment variables. Recreate the container after changing `.env`.
-
-Do not use `down -v` unless deleting RMV setup state, history, and persistent data is intentional.
+Recreate RMV, make the change, then return the setting to `false` and recreate again.
 
 ## Security
 
-RMV does not mount Docker or Podman sockets. Keep the UI on a trusted network, use a strong admin password, and place HTTPS/authentication in front of RMV if it is exposed beyond that network.
+RMV does not mount Docker or Podman sockets. The container runs unprivileged with all capabilities dropped, `no-new-privileges`, a read-only root filesystem and a bounded writable `/tmp`.
+
+Keep the UI on a trusted network and use HTTPS/authentication if it is exposed beyond that network.
