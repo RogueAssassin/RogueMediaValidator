@@ -8,9 +8,9 @@ RogueMediaValidator uses one `compose.yaml` for Docker and Podman and follows th
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/.env.example -o .env
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/update.sh -o update.sh
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/update.sh -o update.sh
 chmod 600 .env
 chmod +x update.sh
 ```
@@ -24,7 +24,7 @@ nano .env
 For a first install, keep:
 
 ```env
-RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:1.1.0-testing
+RMV_IMAGE=ghcr.io/rogueassassin/roguemediavalidator:latest
 RMV_HTTP_PORT=7811
 RMV_NETWORK=media-net
 RMV_DRY_RUN=true
@@ -107,23 +107,23 @@ Use the Docker equivalent when applicable.
 
 ## Updating
 
-Testing channel:
-
-```bash
-cd /opt/media-server/roguemediavalidator
-./update.sh testing
-```
-
-Pinned testing image:
-
-```bash
-./update.sh 1.1.0-testing
-```
-
 Stable production:
 
 ```bash
+cd /opt/media-server/roguemediavalidator
 ./update.sh latest
+```
+
+Pinned production release:
+
+```bash
+./update.sh 1.1.0
+```
+
+Testing channel:
+
+```bash
+./update.sh testing
 ```
 
 The updater preserves the existing `.env` and named `roguemediavalidator-data` volume, backs up deployment files, verifies the pulled/running image and checks `/healthz` before completing.
