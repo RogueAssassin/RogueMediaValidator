@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/app/static/icons/roguemediavalidator-approved-128.png" width="128" height="128" alt="RogueMediaValidator logo">
+<img src="https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/app/static/icons/roguemediavalidator-approved-128.png" width="128" height="128" alt="RogueMediaValidator logo">
 
 # RogueMediaValidator
 
@@ -8,8 +8,8 @@
 
 Provider-neutral torrent payload validation and enforcement for Docker and Podman media stacks.
 
-[![Release](https://img.shields.io/badge/RELEASE-1.1.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/container.yml?query=branch%3Amain)
+[![Release](https://img.shields.io/badge/RELEASE-1.2.0%20TESTING-8b5cf6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/tree/testing)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/container.yml?query=branch%3Atesting)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
@@ -67,9 +67,9 @@ RMV keeps its SQLite state in the persistent `roguemediavalidator-data` containe
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/.env.example -o .env
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/update.sh -o update.sh
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/update.sh -o update.sh
 chmod 600 .env
 chmod +x update.sh
 nano .env
@@ -122,10 +122,10 @@ cd /opt/media-server/roguemediavalidator
 ./update.sh latest
 ```
 
-Pinned production release:
+Pinned testing build:
 
 ```bash
-./update.sh 1.1.0
+./update.sh 1.2.0-testing
 ```
 
 Testing channel:
@@ -174,17 +174,18 @@ Keep RMV on a trusted network and use HTTPS/authentication before exposing it be
 
 ## Release channels
 
-Stable production:
+Testing:
+
+```text
+ghcr.io/rogueassassin/roguemediavalidator:testing
+ghcr.io/rogueassassin/roguemediavalidator:1.2.0-testing
+```
+
+Stable production remains:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:latest
 ghcr.io/rogueassassin/roguemediavalidator:1.1.0
 ```
 
-Testing:
-
-```text
-ghcr.io/rogueassassin/roguemediavalidator:testing
-```
-
-`main` is the stable production branch. `testing` is the proving ground for the next release.
+The permanent `testing` branch is now on the v1.2.0 development baseline. `main` remains the stable v1.1.0 production branch.
