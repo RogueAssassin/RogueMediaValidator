@@ -1,19 +1,37 @@
 services:
   roguemediavalidator:
-    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:latest}
+    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:1.1.0-testing}
+    pull_policy: always
     container_name: roguemediavalidator
     restart: unless-stopped
-    env_file: .env
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7811/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    env_file:
+      - .env
     ports:
       - "${RMV_HTTP_PORT:-7811}:7811"
     volumes:
       - roguemediavalidator-data:/data
     networks:
-      - media-net
+      media-net:
+        aliases:
+          - roguemediavalidator
+          - rmv
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    labels:
+      rogue.dashboard.protected: "true"
+      rogue.product: "RogueMediaValidator"
 
 volumes:
   roguemediavalidator-data:
