@@ -1,15 +1,15 @@
 # Changelog
 
-## 1.1.0
+## 1.1.0 - 2026-09-07
 
-- Started the next RogueMediaValidator testing cycle from the validated v1.0.0 production release.
+- Promoted the validated RogueMediaValidator v1.1.0 testing baseline to production.
 - Standardised the README, changelog, environment-file presentation and update workflow with RogueDashboard and RogueForge.
 - Added the Rogue ecosystem overview and canonical `/opt/media-server/roguemediavalidator` deployment guidance.
 - Added the Rogue-style `update.sh` workflow for production, testing and pinned-version updates.
 - Hardened Compose with a read-only root filesystem, bounded `/tmp`, explicit health checking, stop grace period, pull policy and Rogue ecosystem labels.
 - Kept the existing named SQLite volume contract unchanged so testing does not strand v1.0.0 state.
 - Added OCI image metadata and a clean SIGTERM shutdown contract to the container image.
-- Added CI syntax validation for the updater.
+- Added updater syntax validation to the automated test workflow.
 - Kept all v1.0.0 provider, policy, automation, notification, audit and safety behavior intact.
 
 ## 1.0.0
