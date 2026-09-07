@@ -1,6 +1,6 @@
 services:
   roguemediavalidator:
-    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:1.1.0-testing}
+    image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:latest}
     pull_policy: always
     container_name: roguemediavalidator
     restart: unless-stopped
