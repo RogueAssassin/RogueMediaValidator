@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 (testing)
+
+- Advanced the permanent testing branch after successful v1.1.0 production promotion.
+- Preserved the v1.1.0 provider, policy, automation, notification, audit, updater and container-hardening baseline.
+- Added no new environment revision because this is a clean development baseline only.
+
 ## 1.1.0 - 2026-09-07
 
 - Promoted the validated RogueMediaValidator v1.1.0 testing baseline to production.
