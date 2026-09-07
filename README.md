@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/app/static/icons/roguemediavalidator-approved-128.png" width="128" height="128" alt="RogueMediaValidator logo">
+<img src="https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/app/static/icons/roguemediavalidator-approved-128.png" width="128" height="128" alt="RogueMediaValidator logo">
 
 # RogueMediaValidator
 
@@ -8,9 +8,8 @@
 
 Provider-neutral torrent payload validation and enforcement for Docker and Podman media stacks.
 
-[![Release](https://img.shields.io/badge/RELEASE-1.1.0%20TESTING-8b5cf6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/tree/testing)
-[![CI](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/ci.yml?branch=testing&style=for-the-badge&label=CI&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/ci.yml?query=branch%3Atesting)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/container.yml?query=branch%3Atesting)
+[![Release](https://img.shields.io/badge/RELEASE-1.1.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/container.yml?query=branch%3Amain)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
@@ -68,9 +67,9 @@ RMV keeps its SQLite state in the persistent `roguemediavalidator-data` containe
 mkdir -p /opt/media-server/roguemediavalidator
 cd /opt/media-server/roguemediavalidator
 
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/.env.example -o .env
-curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/testing/update.sh -o update.sh
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/compose.yaml -o compose.yaml
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/RogueAssassin/RogueMediaValidator/main/update.sh -o update.sh
 chmod 600 .env
 chmod +x update.sh
 nano .env
@@ -116,23 +115,23 @@ When a provider cannot guarantee local payload deletion, RMV records a limited a
 
 ## Updating
 
-Testing:
+Stable production:
 
 ```bash
 cd /opt/media-server/roguemediavalidator
-./update.sh testing
-```
-
-Pinned testing build:
-
-```bash
-./update.sh 1.1.0-testing
-```
-
-Stable production after promotion:
-
-```bash
 ./update.sh latest
+```
+
+Pinned production release:
+
+```bash
+./update.sh 1.1.0
+```
+
+Testing channel:
+
+```bash
+./update.sh testing
 ```
 
 The updater follows the RogueDashboard/RogueForge pattern: it detects Docker or Podman, preserves the existing `.env` and persistent volume, backs up deployment files, pulls the requested image, recreates RMV, verifies the running image and checks `/healthz` before refreshing the updater itself.
@@ -175,18 +174,17 @@ Keep RMV on a trusted network and use HTTPS/authentication before exposing it be
 
 ## Release channels
 
+Stable production:
+
+```text
+ghcr.io/rogueassassin/roguemediavalidator:latest
+ghcr.io/rogueassassin/roguemediavalidator:1.1.0
+```
+
 Testing:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:testing
-ghcr.io/rogueassassin/roguemediavalidator:1.1.0-testing
 ```
 
-Stable production remains:
-
-```text
-ghcr.io/rogueassassin/roguemediavalidator:latest
-ghcr.io/rogueassassin/roguemediavalidator:1.0.0
-```
-
-The permanent `testing` branch is the proving ground for the next release. `main` remains the stable production branch until testing is validated.
+`main` is the stable production branch. `testing` is the proving ground for the next release.
