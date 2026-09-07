@@ -30,6 +30,8 @@ jobs:
         run: pytest -q
       - name: Compile Python
         run: python -m compileall -q app
+      - name: Validate updater syntax
+        run: bash -n update.sh
       - name: Validate Compose
         run: |
           cp .env.example .env
