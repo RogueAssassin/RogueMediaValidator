@@ -40,3 +40,6 @@ networks:
   media-net:
     external: true
     name: ${RMV_NETWORK:-media-net}
+
+x-podman:
+  in_pod: false
