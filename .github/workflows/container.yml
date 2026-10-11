@@ -6,18 +6,43 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: rmv-container-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a publish half-way through a multi-arch push.
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]]
+          # Every release surface must agree before anything is published.
+          grep -Fqx "version = \"$version\"" pyproject.toml
+          grep -Fqx "__version__ = \"$version\"" app/__init__.py
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            test "$GITHUB_REF_NAME" = "v$version"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Test before publishing
+        run: |
+          pip install -e '.[test]'
+          ruff check app tests
+          pytest -q
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
@@ -32,14 +57,15 @@ jobs:
           labels: |
             org.opencontainers.image.title=RogueMediaValidator
             org.opencontainers.image.description=Multi-client pre-download torrent payload validator for Docker and Podman media automation.
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
           annotations: |
             org.opencontainers.image.title=RogueMediaValidator
             org.opencontainers.image.description=Multi-client pre-download torrent payload validator for Docker and Podman media automation.
           tags: |
             type=raw,value=testing,enable=${{ github.ref == 'refs/heads/testing' }}
-            type=raw,value=1.1.0-testing,enable=${{ github.ref == 'refs/heads/testing' }}
+            type=raw,value=${{ steps.version.outputs.version }}-testing,enable=${{ github.ref == 'refs/heads/testing' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=1.1.0,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
             type=sha
       - uses: docker/build-push-action@v7
@@ -49,5 +75,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: RMV_VERSION=${{ steps.version.outputs.version }}
           provenance: mode=max
           sbom: true

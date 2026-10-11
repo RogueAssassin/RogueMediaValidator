@@ -48,4 +48,28 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: roguemediavalidator:ci
+      - name: Smoke test image (hardened runtime, health, graceful stop)
+        shell: bash
+        run: |
+          # Same restrictions compose.yaml applies: non-root, read-only root, no capabilities.
+          docker run -d --name rmv -p 17811:7811 \
+            --read-only --tmpfs /tmp:size=32m --cap-drop ALL --security-opt no-new-privileges:true \
+            --memory 512m --pids-limit 256 -v rmv-data:/data roguemediavalidator:ci
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:17811/healthz && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:17811/healthz | grep -q '"status":"ok"'
+          test "$(docker exec rmv id -u)" = "10001"
+          for _ in $(seq 1 30); do
+            [[ "$(docker inspect rmv --format '{{.State.Health.Status}}')" == healthy ]] && break
+            sleep 2
+          done
+          test "$(docker inspect rmv --format '{{.State.Health.Status}}')" = healthy
+          start=$(date +%s)
+          docker stop -t 20 rmv
+          elapsed=$(( $(date +%s) - start ))
+          echo "docker stop took ${elapsed}s"
+          test "$elapsed" -lt 10   # SIGTERM must be handled; an ignored SIGTERM waits for SIGKILL
