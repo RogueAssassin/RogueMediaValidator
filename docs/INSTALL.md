@@ -126,7 +126,13 @@ Testing channel:
 ./update.sh testing
 ```
 
-The updater preserves the existing `.env` and named `roguemediavalidator-data` volume, backs up deployment files, verifies the pulled/running image and checks `/healthz` before completing.
+The updater preserves the existing `.env` and named `roguemediavalidator-data` volume, backs up deployment files to `backups/update/` (the last ten are kept), verifies the pulled/running image and checks `/healthz` before completing.
+
+It pulls the requested image before changing any deployment file, so an unpublished tag leaves the installation untouched. If the recreated container fails verification or its health check, the previous `compose.yaml`, `.env` and image are restored automatically.
+
+`compose.yaml` is replaced on every update. Keep local changes in `compose.override.yaml`; the updater applies it and never overwrites it.
+
+`compose.yaml` uses `pull_policy: missing` so the container can be recreated while the registry is unreachable. Run `./update.sh` to move to a newer image, or set `RMV_PULL_POLICY=always` to pull on every recreate.
 
 ## Monitoring
 

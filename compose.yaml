@@ -1,7 +1,9 @@
 services:
   roguemediavalidator:
     image: ${RMV_IMAGE:-ghcr.io/rogueassassin/roguemediavalidator:latest}
-    pull_policy: always
+    # "missing" keeps a recreate working when the registry is unreachable (e.g. after a power
+    # cut with no internet). ./update.sh always pulls explicitly.
+    pull_policy: ${RMV_PULL_POLICY:-missing}
     container_name: roguemediavalidator
     restart: unless-stopped
     stop_grace_period: 15s
@@ -14,7 +16,8 @@ services:
     env_file:
       - .env
     ports:
-      - "${RMV_HTTP_PORT:-7811}:7811"
+      # Set RMV_HTTP_BIND=127.0.0.1 when a reverse proxy on the same host/network fronts RMV.
+      - "${RMV_HTTP_BIND:-0.0.0.0}:${RMV_HTTP_PORT:-7811}:7811"
     volumes:
       - roguemediavalidator-data:/data
     networks:
@@ -29,6 +32,13 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: ${RMV_MEM_LIMIT:-512m}
+    pids_limit: ${RMV_PIDS_LIMIT:-256}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       rogue.dashboard.protected: "true"
       rogue.product: "RogueMediaValidator"

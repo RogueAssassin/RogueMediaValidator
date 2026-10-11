@@ -1,7 +1,12 @@
 .git
 .github
 .env
+.env.*
+!.env.example
 data
+backups
+tests
+docs
 __pycache__
 .pytest_cache
 .ruff_cache
