@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1 - 2026-10-11
+
+- Changed the Compose pull policy default to `missing` (`RMV_PULL_POLICY`) so the container can be recreated while the registry is unreachable; `update.sh` always pulls explicitly.
+- Added the optional `RMV_HTTP_BIND`, `RMV_MEM_LIMIT`, `RMV_PIDS_LIMIT` and `RMV_RUNTIME` settings and bounded container log rotation; existing `.env` files keep working without them.
+- Made `update.sh` pull before changing deployment files, take a lock and roll back the deployment files and image when verification or the health check fails.
+- Moved update backups from `/tmp` to `backups/update` (last ten kept) and added `compose.override.yaml` support.
+- Published images from the `VERSION` file after lint and tests pass, and smoke tested the image under the read-only, non-root, capability-free runtime.
+- Added Dependabot and pinned LF line endings for container files.
+
 ## 1.1.0 - 2026-09-07
 
 - Promoted the validated RogueMediaValidator v1.1.0 testing baseline to production.
