@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 - 2026-10-23
+
+- Moved the container image to Python 3.14 (`python:3.14-slim`).
+- Aligned the release with RogueDashboard 2.3.0 and RogueForge 2.3.0.
+
 ## 1.1.1 - 2026-10-11
 
 - Changed the Compose pull policy default to `missing` (`RMV_PULL_POLICY`) so the container can be recreated while the registry is unreachable; `update.sh` always pulls explicitly.

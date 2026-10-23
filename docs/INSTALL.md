@@ -117,7 +117,7 @@ cd /opt/media-server/roguemediavalidator
 Pinned production release:
 
 ```bash
-./update.sh 1.1.1
+./update.sh 1.3.0
 ```
 
 Testing channel:
