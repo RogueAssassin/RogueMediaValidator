@@ -1,21 +1,26 @@
 [project]
 name = "roguemediavalidator"
-version = "1.3.0"
+version = "1.4.0"
 description = "Multi-client pre-download torrent payload validator for containerized media automation"
 requires-python = ">=3.12"
+# uvicorn's [standard] extra is not used: RMV needs neither auto-reload (watchfiles), YAML logging
+# config (PyYAML, which has no Python 3.15 wheel) nor WebSockets. uvloop and httptools keep the
+# fast event loop and HTTP parser and ship wheels for every supported Python.
 dependencies = [
-  "fastapi>=0.115,<1",
-  "uvicorn[standard]>=0.30,<1",
-  "httpx>=0.27,<1",
-  "jinja2>=3.1,<4",
-  "pydantic-settings>=2.5,<3",
+  "fastapi>=0.160,<1",
+  "uvicorn>=0.54,<1",
+  "uvloop>=0.23,<1; sys_platform != 'win32' and platform_python_implementation == 'CPython'",
+  "httptools>=0.9,<1",
+  "httpx>=0.28,<1",
+  "jinja2>=3.1.6,<4",
+  "pydantic-settings>=2.16,<3",
 ]
 
 [project.optional-dependencies]
 test = [
-  "pytest>=8,<9",
-  "pytest-asyncio>=0.24,<1",
-  "ruff>=0.7,<1",
+  "pytest>=9,<10",
+  "pytest-asyncio>=1.4,<2",
+  "ruff>=0.17,<1",
 ]
 
 [tool.pytest.ini_options]
