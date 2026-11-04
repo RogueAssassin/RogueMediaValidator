@@ -8,8 +8,8 @@
 
 Provider-neutral torrent payload validation and enforcement for Docker and Podman media stacks.
 
-[![Release](https://img.shields.io/badge/RELEASE-1.2.0%20TESTING-8b5cf6?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/tree/testing)
-[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/container.yml?branch=testing&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/container.yml?query=branch%3Atesting)
+[![Release](https://img.shields.io/badge/RELEASE-1.3.0-42d6a4?style=for-the-badge&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator)
+[![Build](https://img.shields.io/github/actions/workflow/status/RogueAssassin/RogueMediaValidator/container.yml?branch=main&style=for-the-badge&label=BUILD&labelColor=45464d)](https://github.com/RogueAssassin/RogueMediaValidator/actions/workflows/container.yml?query=branch%3Amain)
 ![Engine](https://img.shields.io/badge/ENGINE-DOCKER%20%7C%20PODMAN-00cbe6?style=for-the-badge&labelColor=45464d)
 ![Platform](https://img.shields.io/badge/PLATFORM-AMD64%20%7C%20ARM64-42d6a4?style=for-the-badge&labelColor=45464d)
 
@@ -125,7 +125,7 @@ cd /opt/media-server/roguemediavalidator
 Pinned testing build:
 
 ```bash
-./update.sh 1.2.0-testing
+./update.sh 1.3.0
 ```
 
 Testing channel:
@@ -185,7 +185,7 @@ Stable production remains:
 
 ```text
 ghcr.io/rogueassassin/roguemediavalidator:latest
-ghcr.io/rogueassassin/roguemediavalidator:1.1.0
+ghcr.io/rogueassassin/roguemediavalidator:1.3.0
 ```
 
 The permanent `testing` branch is now on the v1.2.0 development baseline. `main` remains the stable v1.1.0 production branch.

@@ -1,10 +1,18 @@
 # Changelog
 
-## 1.2.0 (testing)
+## 1.3.0 - 2026-10-23
 
-- Advanced the permanent testing branch after successful v1.1.0 production promotion.
-- Preserved the v1.1.0 provider, policy, automation, notification, audit, updater and container-hardening baseline.
-- Added no new environment revision because this is a clean development baseline only.
+- Moved the container image to Python 3.14 (`python:3.14-slim`).
+- Aligned the release with RogueDashboard 2.3.0 and RogueForge 2.3.0.
+
+## 1.1.1 - 2026-10-11
+
+- Changed the Compose pull policy default to `missing` (`RMV_PULL_POLICY`) so the container can be recreated while the registry is unreachable; `update.sh` always pulls explicitly.
+- Added the optional `RMV_HTTP_BIND`, `RMV_MEM_LIMIT`, `RMV_PIDS_LIMIT` and `RMV_RUNTIME` settings and bounded container log rotation; existing `.env` files keep working without them.
+- Made `update.sh` pull before changing deployment files, take a lock and roll back the deployment files and image when verification or the health check fails.
+- Moved update backups from `/tmp` to `backups/update` (last ten kept) and added `compose.override.yaml` support.
+- Published images from the `VERSION` file after lint and tests pass, and smoke tested the image under the read-only, non-root, capability-free runtime.
+- Added Dependabot and pinned LF line endings for container files.
 
 ## 1.1.0 - 2026-09-07
 
