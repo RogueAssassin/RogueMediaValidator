@@ -1,6 +1,7 @@
 /* Rogue clean palette (shared with RogueDashboard and RogueForge).
    Warm charcoal dark / warm paper light, one clay accent, no glows or gradients.
-   Light or dark follows the operating system preference. */
+   System, Light or Dark is picked from the top-bar theme menu (rogue-theme.js sets html[data-theme]).
+   The top bar is chrome: it stays dark in both modes. */
 :root{
   color-scheme:dark;
   --bg:#1f1e1d;
@@ -25,39 +26,37 @@
   --red-soft:rgba(232,120,109,.12);
   --amber:#e3ae5f;
   --amber-soft:rgba(227,174,95,.12);
-  --topbar:rgba(31,30,29,.9);
+  --topbar:#181715;
   --shadow:0 1px 2px rgba(0,0,0,.24);
   --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
-@media (prefers-color-scheme:light){
-  :root{
-    color-scheme:light;
-    --bg:#faf9f5;
-    --surface:#ffffff;
-    --panel:#ffffff;
-    --panel-hi:#f0eee6;
-    --field:#ffffff;
-    --line:rgba(31,30,29,.13);
-    --line-soft:rgba(31,30,29,.08);
-    --line-strong:rgba(31,30,29,.24);
-    --text:#1f1e1d;
-    --muted:#73726c;
-    --muted2:#4f4e4a;
-    --accent:#b5532f;
-    --accent-hover:#9e4626;
-    --accent-ink:#ffffff;
-    --accent-soft:rgba(181,83,47,.1);
-    --accent-line:rgba(181,83,47,.4);
-    --green:#2f7a4c;
-    --green-soft:rgba(47,122,76,.1);
-    --red:#b23a30;
-    --red-soft:rgba(178,58,48,.09);
-    --amber:#8f5d0e;
-    --amber-soft:rgba(143,93,14,.1);
-    --topbar:rgba(250,249,245,.92);
-    --shadow:0 1px 2px rgba(31,30,29,.06);
-  }
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#faf9f5;
+  --surface:#ffffff;
+  --panel:#ffffff;
+  --panel-hi:#f0eee6;
+  --field:#ffffff;
+  --line:rgba(31,30,29,.13);
+  --line-soft:rgba(31,30,29,.08);
+  --line-strong:rgba(31,30,29,.24);
+  --text:#1f1e1d;
+  --muted:#73726c;
+  --muted2:#4f4e4a;
+  --accent:#b5532f;
+  --accent-hover:#9e4626;
+  --accent-ink:#ffffff;
+  --accent-soft:rgba(181,83,47,.1);
+  --accent-line:rgba(181,83,47,.4);
+  --green:#2f7a4c;
+  --green-soft:rgba(47,122,76,.1);
+  --red:#b23a30;
+  --red-soft:rgba(178,58,48,.09);
+  --amber:#8f5d0e;
+  --amber-soft:rgba(143,93,14,.1);
+  --topbar:#181715;
+  --shadow:0 1px 2px rgba(31,30,29,.06);
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
@@ -278,3 +277,21 @@ button.button{border:0;font:inherit;cursor:pointer}
   .brand{flex:1 1 100%}
   .topbar-actions{flex:1 1 100%;max-width:none;justify-content:flex-start}
 }
+
+/* Chrome: the top bar keeps the dark palette in both themes (same as RogueDashboard and RogueForge) */
+.topbar{
+  color-scheme:dark;color:var(--text);
+  --surface:#262624;--panel:#262624;--panel-hi:#30302e;--field:#1b1a19;
+  --line:rgba(222,220,209,.13);--line-soft:rgba(222,220,209,.08);--line-strong:rgba(222,220,209,.24);
+  --text:#faf9f5;--muted:#9c9a92;--muted2:#c2c0b6;
+  --accent:#d97757;--accent-hover:#e08a6d;--accent-ink:#1f1e1d;--accent-soft:rgba(217,119,87,.14);--accent-line:rgba(217,119,87,.42);
+  --green:#7cc293;--green-soft:rgba(124,194,147,.12);--red:#e8786d;--red-soft:rgba(232,120,109,.12);
+  --amber:#e3ae5f;--amber-soft:rgba(227,174,95,.12);
+  border-bottom-color:rgba(222,220,209,.08);backdrop-filter:none;
+}
+
+/* Status tiles carry a soft tint of their state */
+.metric strong.warn{color:var(--amber)}
+.metric:has(strong.good){background:color-mix(in srgb,var(--green) 8%,var(--surface));border-color:color-mix(in srgb,var(--green) 22%,var(--line))}
+.metric:has(strong.bad){background:color-mix(in srgb,var(--red) 8%,var(--surface));border-color:color-mix(in srgb,var(--red) 22%,var(--line))}
+.metric:has(strong.warn){background:color-mix(in srgb,var(--amber) 9%,var(--surface));border-color:color-mix(in srgb,var(--amber) 24%,var(--line))}

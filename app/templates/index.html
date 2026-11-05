@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#1f1e1d" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#181715">
   <title>RogueMediaValidator</title>
   <link rel="icon" type="image/png" href="/static/icons/roguemediavalidator-approved-128.png">
   <link rel="apple-touch-icon" href="/static/icons/roguemediavalidator-approved-128.png">
+  <script src="/static/rogue-theme.js?v={{ version }}"></script>
   <link rel="stylesheet" href="/static/app.css?v={{ version }}">
 </head>
 <body>
@@ -33,6 +33,7 @@
         <span class="version">v{{ version }}</span>
         <a class="button secondary" href="/settings">Settings</a>
         <a class="button secondary" href="/setup">Installation</a>
+        <div data-rogue-theme-menu></div>
       </nav>
     </header>
 
@@ -63,7 +64,7 @@
         </article>
         <article class="metric">
           <span>Quarantined</span>
-          <strong class="{{ 'bad' if stats.quarantined else '' }}">{{ stats.quarantined }}</strong>
+          <strong class="{{ 'warn' if stats.quarantined else '' }}">{{ stats.quarantined }}</strong>
           <small>held for operator review</small>
         </article>
         <article class="metric">

@@ -4,7 +4,9 @@
 
 Clean visual refresh and dependency update, aligned with RogueDashboard 2.4.0 and RogueForge 2.4.0.
 
-- New look: warm charcoal dark and warm paper light themes with a single clay accent, replacing the purple/cyan glow styling. The theme follows the device setting.
+- New look: warm charcoal dark and warm paper light themes with a single clay accent, replacing the purple/cyan glow styling.
+- New theme menu at the top right: **System** (default, follows the device), **Light** or **Dark**, saved per browser. It is the same menu in RogueDashboard and RogueForge (shared `rogue-theme.js`). The top bar stays dark in both modes.
+- Approved, blocked and quarantined tiles carry a soft tint of their state; quarantined now shows in amber.
 - Kept the original RogueMediaValidator icon.
 - Fixed: on phones the app name overlapped the status chips in the header.
 - Container image on Python 3.15 (`python:3.15-slim`); CI tests on 3.15. The 1.3.0 notes said 3.14, but the image already used 3.15.
