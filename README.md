@@ -33,6 +33,7 @@ RMV stays provider-neutral: torrent clients, media automation and notifications 
 - Docker and rootless Podman support from one `compose.yaml`
 - no Docker or Podman socket mount required
 - hardened unprivileged container with a read-only root filesystem
+- Default (Rogue navy), Light, Dark and System themes, shared with RogueDashboard and RogueForge
 
 ## Rogue ecosystem
 
@@ -147,6 +148,10 @@ GET /api/status
 - `/healthz` is process liveness.
 - `/readyz` returns HTTP 200 only when RMV is configured, connected and managing at least one scope.
 - `/api/status` is the compact no-secret integration payload for RogueDashboard and other monitoring.
+
+## Themes
+
+The theme button at the top right switches between **Default** (Rogue navy), **Light**, **Dark** and **System** (follows the device's light or dark setting). The choice is saved per browser. RogueDashboard, RogueForge and RogueMediaValidator share the same menu and palette, with one warm clay accent.
 
 ## Persistent data
 
