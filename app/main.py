@@ -1,5 +1,6 @@
 import asyncio
 import csv
+import hashlib
 import logging
 import secrets
 from contextlib import asynccontextmanager, suppress
@@ -28,6 +29,21 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 store = Store(settings.data_dir / "rmv.db")
 templates = Jinja2Templates(directory="app/templates")
+
+
+def asset_version() -> str:
+    """Version plus a short content hash, so browsers and CDNs fetch new CSS/JS after any update."""
+    digest = hashlib.sha256()
+    for name in ("app.css", "rogue-theme.js"):
+        try:
+            with open(f"app/static/{name}", "rb") as handle:
+                digest.update(handle.read())
+        except OSError:
+            pass
+    return f"{__version__}-{digest.hexdigest()[:10]}"
+
+
+templates.env.globals["asset_version"] = asset_version()
 automation_config_error: str | None = None
 try:
     automation = AutomationManager(

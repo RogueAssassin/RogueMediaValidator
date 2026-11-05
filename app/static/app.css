@@ -1,7 +1,7 @@
 /* Rogue clean palette (shared with RogueDashboard and RogueForge).
    Warm charcoal dark / warm paper light, one clay accent, no glows or gradients.
-   System, Light or Dark is picked from the top-bar theme menu (rogue-theme.js sets html[data-theme]).
-   The top bar is chrome: it stays dark in both modes. */
+   Default (Rogue navy), Light, Dark or System is picked from the top-bar theme menu (rogue-theme.js
+   sets html[data-theme]). The top bar is chrome: navy in Default and Light, near-black in Dark. */
 :root{
   color-scheme:dark;
   --bg:#1f1e1d;
@@ -57,6 +57,22 @@
   --amber-soft:rgba(143,93,14,.1);
   --topbar:#181715;
   --shadow:0 1px 2px rgba(31,30,29,.06);
+}
+/* Default: Rogue navy base (the starting theme) */
+:root[data-theme="default"]{
+  color-scheme:dark;
+  --bg:#13203a;
+  --surface:#1a2a48;
+  --panel:#1a2a48;
+  --panel-hi:#213356;
+  --field:#101b31;
+  --line:rgba(196,214,255,.12);
+  --line-soft:rgba(196,214,255,.07);
+  --line-strong:rgba(196,214,255,.22);
+  --text:#f4f4f5;
+  --muted:#a9b1c3;
+  --muted2:#c9cfdb;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
@@ -278,16 +294,16 @@ button.button{border:0;font:inherit;cursor:pointer}
   .topbar-actions{flex:1 1 100%;max-width:none;justify-content:flex-start}
 }
 
-/* Chrome: the top bar keeps the dark palette in both themes (same as RogueDashboard and RogueForge) */
+/* Chrome: the top bar uses the shared chrome palette from rogue-theme.js (same in all Rogue apps) */
 .topbar{
-  color-scheme:dark;color:var(--text);
-  --surface:#262624;--panel:#262624;--panel-hi:#30302e;--field:#1b1a19;
-  --line:rgba(222,220,209,.13);--line-soft:rgba(222,220,209,.08);--line-strong:rgba(222,220,209,.24);
-  --text:#faf9f5;--muted:#9c9a92;--muted2:#c2c0b6;
+  color-scheme:dark;color:var(--text);background:var(--rogue-chrome,#181715);
+  --surface:var(--rogue-chrome-2,#232220);--panel:var(--rogue-chrome-2,#232220);--panel-hi:var(--rogue-chrome-3,#2c2c2a);--field:var(--rogue-chrome-field,#1b1a19);
+  --line:var(--rogue-chrome-line,rgba(222,220,209,.1));--line-soft:var(--rogue-chrome-line,rgba(222,220,209,.1));--line-strong:var(--rogue-chrome-line-strong,rgba(222,220,209,.2));
+  --text:var(--rogue-chrome-text,#faf9f5);--muted:var(--rogue-chrome-muted,#b0aea5);--muted2:var(--rogue-chrome-text-2,#dedcd3);
   --accent:#d97757;--accent-hover:#e08a6d;--accent-ink:#1f1e1d;--accent-soft:rgba(217,119,87,.14);--accent-line:rgba(217,119,87,.42);
   --green:#7cc293;--green-soft:rgba(124,194,147,.12);--red:#e8786d;--red-soft:rgba(232,120,109,.12);
   --amber:#e3ae5f;--amber-soft:rgba(227,174,95,.12);
-  border-bottom-color:rgba(222,220,209,.08);backdrop-filter:none;
+  border-bottom-color:var(--rogue-chrome-line,rgba(222,220,209,.08));backdrop-filter:none;
 }
 
 /* Status tiles carry a soft tint of their state */
