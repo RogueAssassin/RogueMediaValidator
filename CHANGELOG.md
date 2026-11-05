@@ -5,7 +5,8 @@
 Clean visual refresh and dependency update, aligned with RogueDashboard 2.4.0 and RogueForge 2.4.0.
 
 - New look: warm charcoal dark and warm paper light themes with a single clay accent, replacing the purple/cyan glow styling. The theme follows the device setting.
-- New monogram icon (`/static/icons/roguemediavalidator.svg`) for the header and browser tab.
+- Kept the original RogueMediaValidator icon.
+- Fixed: on phones the app name overlapped the status chips in the header.
 - Container image on Python 3.15 (`python:3.15-slim`); CI tests on 3.15. The 1.3.0 notes said 3.14, but the image already used 3.15.
 - Replaced `uvicorn[standard]` with `uvicorn`, `uvloop` and `httptools`. RMV does not use auto-reload, YAML logging config or WebSockets, and PyYAML has no Python 3.15 wheel, so the image is smaller and builds without compiling.
 - Raised minimum versions to the current releases: FastAPI 0.160, Uvicorn 0.54, HTTPX 0.28, Jinja2 3.1.6, pydantic-settings 2.16, pytest 9, pytest-asyncio 1.4, Ruff 0.17.
