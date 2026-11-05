@@ -1,6 +1,6 @@
 FROM python:3.15-slim
 
-ARG RMV_VERSION=1.4.0
+ARG RMV_VERSION=1.4.1
 
 LABEL org.opencontainers.image.title="RogueMediaValidator" \
       org.opencontainers.image.description="Provider-neutral torrent payload validation and protection" \

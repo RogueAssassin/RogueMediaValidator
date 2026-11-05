@@ -33,30 +33,30 @@
 }
 :root[data-theme="light"]{
   color-scheme:light;
-  --bg:#faf9f5;
-  --surface:#ffffff;
-  --panel:#ffffff;
-  --panel-hi:#f0eee6;
-  --field:#ffffff;
-  --line:rgba(31,30,29,.13);
-  --line-soft:rgba(31,30,29,.08);
-  --line-strong:rgba(31,30,29,.24);
-  --text:#1f1e1d;
-  --muted:#73726c;
-  --muted2:#4f4e4a;
-  --accent:#b5532f;
-  --accent-hover:#9e4626;
+  --bg:#cfd8e4;
+  --surface:#e6ebf2;
+  --panel:#e6ebf2;
+  --panel-hi:#d9e0ea;
+  --field:#eef2f7;
+  --line:rgba(15,26,46,.17);
+  --line-soft:rgba(15,26,46,.09);
+  --line-strong:rgba(15,26,46,.3);
+  --text:#0f1a2e;
+  --muted:#46536a;
+  --muted2:#2f3b52;
+  --accent:#a94c2a;
+  --accent-hover:#92401f;
   --accent-ink:#ffffff;
-  --accent-soft:rgba(181,83,47,.1);
-  --accent-line:rgba(181,83,47,.4);
-  --green:#2f7a4c;
-  --green-soft:rgba(47,122,76,.1);
-  --red:#b23a30;
-  --red-soft:rgba(178,58,48,.09);
-  --amber:#8f5d0e;
-  --amber-soft:rgba(143,93,14,.1);
-  --topbar:#181715;
-  --shadow:0 1px 2px rgba(31,30,29,.06);
+  --accent-soft:rgba(169,76,42,.11);
+  --accent-line:rgba(169,76,42,.42);
+  --green:#22693f;
+  --green-soft:rgba(34,105,63,.12);
+  --red:#a3322a;
+  --red-soft:rgba(163,50,42,.1);
+  --amber:#7a5009;
+  --amber-soft:rgba(122,80,9,.12);
+  --topbar:#0f1a2e;
+  --shadow:0 1px 2px rgba(15,26,46,.06);
 }
 /* Default: Rogue navy base (the starting theme) */
 :root[data-theme="default"]{
