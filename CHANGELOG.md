@@ -8,6 +8,7 @@ Clean visual refresh and dependency update, aligned with RogueDashboard 2.4.0 an
 - New theme menu at the top right: **System** (default, follows the device), **Light** or **Dark**, saved per browser. It is the same menu in RogueDashboard and RogueForge (shared `rogue-theme.js`). The top bar stays dark in both modes.
 - Approved, blocked and quarantined tiles carry a soft tint of their state; quarantined now shows in amber.
 - Kept the original RogueMediaValidator icon.
+- Fixed: on Podman, `update.sh` refused every update after the first ("Another update is already running") because the container's conmon process inherited the update lock. One-time fix on existing installs: remove `.update.lock` in the install folder, then update.
 - Fixed: on phones the app name overlapped the status chips in the header.
 - Container image on Python 3.15 (`python:3.15-slim`); CI tests on 3.15. The 1.3.0 notes said 3.14, but the image already used 3.15.
 - Replaced `uvicorn[standard]` with `uvicorn`, `uvloop` and `httptools`. RMV does not use auto-reload, YAML logging config or WebSockets, and PyYAML has no Python 3.15 wheel, so the image is smaller and builds without compiling.
