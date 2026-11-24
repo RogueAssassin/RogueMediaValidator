@@ -230,6 +230,24 @@ def health_payload() -> dict:
     }
 
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "same-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for key, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(key, value)
+    if request.url.path.startswith("/api/") or request.url.path == "/settings":
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
+
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     if not service.configured:
