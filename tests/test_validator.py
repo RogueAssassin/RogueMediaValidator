@@ -53,7 +53,8 @@ def test_unknown_extension_fails_closed():
 
 
 def test_path_traversal_is_blocked():
-    for name in ("../evil.mkv", "show/../../evil.mkv", "/etc/x.mkv", "C:/x.mkv", "a\..\b.mkv"):
+    names = ("../evil.mkv", "show/../../evil.mkv", "/etc/x.mkv", "C:/x.mkv", "a\\..\\b.mkv")
+    for name in names:
         r = validate_payload(torrent_hash="t", torrent_name="Movie", category="movies", files=[
             {"name": name, "size": 2_000_000_000}
         ], settings=settings())
