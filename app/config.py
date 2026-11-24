@@ -39,6 +39,8 @@ class Settings(BaseSettings):
         "exe,scr,com,bat,cmd,msi,msix,ps1,psm1,vbs,vbe,js,jse,wsf,wsh,lnk,pif,cpl,jar,apk,dll"
     )
     min_video_size_mb: int = 50
+    # Opt-in: treat files with no extension (e.g. Linux executables) as unapproved.
+    block_extensionless: bool = False
     remove_rejected: bool = True
     delete_rejected_data: bool = True
     auto_resume_valid: bool = True
@@ -83,6 +85,9 @@ class Settings(BaseSettings):
             "blocked_extensions": sorted(self.blocked_exts),
             "min_video_size_mb": self.min_video_size_mb,
         }
+        if self.block_extensionless:
+            # Added only when enabled so existing installs keep their fingerprint on update.
+            policy["block_extensionless"] = True
         encoded = json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()
         return hashlib.sha256(encoded).hexdigest()[:16]
 

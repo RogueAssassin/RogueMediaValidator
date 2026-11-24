@@ -50,3 +50,25 @@ def test_unknown_extension_fails_closed():
     ], settings=settings())
     assert r.status == "blocked"
     assert "Unapproved file type" in r.reason
+
+
+def test_path_traversal_is_blocked():
+    names = ("../evil.mkv", "show/../../evil.mkv", "/etc/x.mkv", "C:/x.mkv", "a\\..\\b.mkv")
+    for name in names:
+        r = validate_payload(torrent_hash="t", torrent_name="Movie", category="movies", files=[
+            {"name": name, "size": 2_000_000_000}
+        ], settings=settings())
+        assert r.status == "blocked", name
+        assert "Unsafe file path" in r.reason
+
+
+def test_extensionless_file_allowed_by_default_blocked_when_enabled():
+    files = [{"name": "Movie.mkv", "size": 2_000_000_000}, {"name": "payload", "size": 1000}]
+    default = validate_payload(torrent_hash="u", torrent_name="M", category="m", files=files,
+                               settings=settings())
+    assert default.status == "approved"
+    strict = Settings(_env_file=None, min_video_size_mb=50, block_extensionless=True)
+    r = validate_payload(torrent_hash="u", torrent_name="M", category="m", files=files,
+                         settings=strict)
+    assert r.status == "blocked"
+    assert strict.policy_fingerprint != settings().policy_fingerprint

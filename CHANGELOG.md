@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.2 - 2026-11-24
+
+Hardening release.
+
+- Payloads with unsafe file paths (absolute paths, drive letters or any `..` segment) are now always blocked.
+- New opt-in `RMV_BLOCK_EXTENSIONLESS` rejects files with no extension, such as Linux executables. Off by default; the policy fingerprint is unchanged unless it is enabled, so existing installs do not re-validate on update.
+- Security response headers on every response (`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`) and `Cache-Control: no-store` on `/api/*` and `/settings`.
+
 ## 1.4.1 - 2026-11-05
 
 Light theme readability update, aligned with RogueDashboard 2.4.1 and RogueForge 2.4.1.

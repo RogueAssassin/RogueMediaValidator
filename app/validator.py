@@ -11,6 +11,14 @@ def extension(name: str) -> str:
     return PurePosixPath(name).suffix.lower().lstrip(".")
 
 
+def unsafe_path(name: str) -> bool:
+    """True for absolute paths, drive letters or any '..' segment (either slash style)."""
+    normalised = name.replace("\\", "/")
+    if normalised.startswith("/") or (len(normalised) > 1 and normalised[1] == ":"):
+        return True
+    return ".." in normalised.split("/")
+
+
 def validate_payload(
     *,
     torrent_hash: str,
@@ -21,6 +29,21 @@ def validate_payload(
 ) -> ValidationResult:
     videos: list[dict] = []
     blocked: list[str] = []
+
+    # A payload that escapes its download folder is never legitimate media.
+    for item in files:
+        name = str(item.get("name", ""))
+        if unsafe_path(name):
+            return ValidationResult.now(
+                torrent_hash=torrent_hash,
+                torrent_name=torrent_name,
+                category=category,
+                status="blocked",
+                reason=f"Unsafe file path detected: {name}",
+                video_files=0,
+                blocked_files=1,
+                largest_video_bytes=0,
+            )
 
     for item in files:
         name = str(item.get("name", ""))
@@ -72,7 +95,10 @@ def validate_payload(
     for item in files:
         name = str(item.get("name", ""))
         ext = extension(name)
-        if ext and ext not in settings.video_exts and ext not in settings.support_exts:
+        if not ext:
+            if settings.block_extensionless:
+                unknown.append(name)
+        elif ext not in settings.video_exts and ext not in settings.support_exts:
             unknown.append(name)
 
     if unknown:
