@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 - 2026-11-27
+
+- New **Quarantine** page (`/quarantine`) replaces the raw JSON view: held items with reason, client, scope, time and hash, a filter box and an empty state. `/api/quarantine` is unchanged.
+- Held items can now be dismissed (administrator sign-in). Dismissing only clears the review record; the torrent is not touched. Before this, the dashboard stayed in the quarantine warning permanently.
+- Fixed: the Settings page rendered error messages and scope names from remote services as HTML.
+- Writes started from another website are refused (`Sec-Fetch-Site: cross-site`).
+
 ## 1.5.0 - 2026-11-26
 
 New interface, matching RogueForge and RogueDashboard.

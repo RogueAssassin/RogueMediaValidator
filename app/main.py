@@ -240,7 +240,14 @@ SECURITY_HEADERS = {
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
-    response = await call_next(request)
+    # Browsers resend Basic credentials automatically, so refuse writes started by another site.
+    if (
+        request.method not in {"GET", "HEAD", "OPTIONS"}
+        and request.headers.get("sec-fetch-site") == "cross-site"
+    ):
+        response = JSONResponse(status_code=403, content={"detail": "Cross-site request refused."})
+    else:
+        response = await call_next(request)
     for key, value in SECURITY_HEADERS.items():
         response.headers.setdefault(key, value)
     if request.url.path.startswith("/api/") or request.url.path == "/settings":
@@ -264,6 +271,29 @@ async def dashboard(request: Request):
             "health": health_payload(),
         },
     )
+
+
+@app.get("/quarantine", response_class=HTMLResponse)
+async def quarantine_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="quarantine.html",
+        context={
+            "version": __version__,
+            "items": store.quarantine_held(),
+            "quarantine_enabled": settings.quarantine_rejected,
+        },
+    )
+
+
+@app.post("/api/admin/quarantine/{torrent_hash}/dismiss")
+async def quarantine_dismiss(
+    torrent_hash: str,
+    _admin: Annotated[str, Depends(require_admin)],
+):
+    if not store.quarantine_dismiss(torrent_hash):
+        raise HTTPException(status_code=404, detail="No held item with that hash.")
+    return {"ok": True}
 
 
 @app.get("/settings", response_class=HTMLResponse)

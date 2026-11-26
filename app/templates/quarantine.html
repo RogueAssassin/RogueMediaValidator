@@ -1,0 +1,138 @@
+{% from "_icons.html" import icon %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f1a2e">
+  <title>Quarantine · RogueMediaValidator</title>
+  <link rel="icon" type="image/png" href="/static/icons/roguemediavalidator-approved-128.png">
+  <link rel="apple-touch-icon" href="/static/icons/roguemediavalidator-approved-128.png">
+  <script src="/static/rogue-theme.js?v={{ asset_version }}"></script>
+  <link rel="stylesheet" href="/static/app.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="/static/ui.css?v={{ asset_version }}">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/icons/roguemediavalidator-approved-128.png" width="44" height="44" alt="RogueMediaValidator">
+        <div class="brand-copy">
+          <strong>RogueMediaValidator</strong>
+          <span>Quarantine · v{{ version }}</span>
+        </div>
+      </div>
+      <nav class="topbar-actions" aria-label="Primary navigation">
+        <a class="button secondary" href="/">{{ icon('home') }}Dashboard</a>
+        <a class="button secondary" href="/settings">{{ icon('settings') }}Settings</a>
+        <div data-rogue-theme-menu></div>
+      </nav>
+    </header>
+
+    <main class="settings-main" id="main-content">
+      <section class="hero{{ ' has-issues' if items else '' }}">
+        <div>
+          <p class="eyebrow">Held for operator review</p>
+          <h1 id="held-title">{{ items|length }} item{{ '' if items|length == 1 else 's' }} in quarantine</h1>
+          <p>Quarantined torrents are paused in your torrent client and nothing is deleted. Review each one there, then dismiss it here.</p>
+        </div>
+        <a class="hero-action" href="/api/quarantine" target="_blank" rel="noopener">Raw JSON</a>
+      </section>
+
+      <div id="quarantine-result" class="setup-result" role="status" aria-live="polite" hidden></div>
+
+      {% if items %}
+      <label class="field quarantine-search">
+        <span>Filter by name, reason or scope</span>
+        <input id="quarantine-filter" type="search" placeholder="Type to filter" autocomplete="off">
+      </label>
+
+      <ul class="quarantine-list">
+        {% for item in items %}
+        <li class="panel quarantine-item" data-hash="{{ item.torrent_hash }}">
+          <span class="title-icon">{{ icon('box', 18) }}</span>
+          <div class="quarantine-body">
+            <h2>{{ item.torrent_name }}</h2>
+            <p class="quarantine-reason">{{ icon('alert', 14) }}<span>{{ item.reason }}</span></p>
+            <dl class="quarantine-meta">
+              <div><dt>Client</dt><dd>{{ item.provider }}</dd></div>
+              <div><dt>Scope</dt><dd>{{ item.scopes or '—' }}</dd></div>
+              <div><dt>Held</dt><dd><time datetime="{{ item.updated_at }}">{{ item.updated_at[:16].replace('T', ' ') }} UTC</time></dd></div>
+              <div><dt>Hash</dt><dd><code>{{ item.torrent_hash }}</code></dd></div>
+            </dl>
+          </div>
+          <button class="button secondary quarantine-dismiss" type="button" aria-label="Dismiss {{ item.torrent_name }}">{{ icon('check') }}Dismiss</button>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="panel empty" id="quarantine-nomatch" hidden>Nothing matches that filter.</p>
+      {% endif %}
+
+      <section class="panel quarantine-empty" id="quarantine-empty" {% if items %}hidden{% endif %}>
+        <span class="title-icon">{{ icon('shield', 26) }}</span>
+        <h2>Nothing is waiting for review</h2>
+        <p>{{ 'Blocked torrents will be held here.' if quarantine_enabled else 'Quarantine mode is off. Set RMV_QUARANTINE_REJECTED=true to hold blocked torrents instead of removing them.' }}</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      document.querySelectorAll('time[datetime]').forEach((node) => {
+        const date = new Date(node.dateTime);
+        if (!Number.isNaN(date.getTime())) node.textContent = date.toLocaleString();
+      });
+
+      const items = () => [...document.querySelectorAll('.quarantine-item')];
+      const filter = document.getElementById('quarantine-filter');
+      const noMatch = document.getElementById('quarantine-nomatch');
+      const result = document.getElementById('quarantine-result');
+
+      function applyFilter() {
+        if (!filter) return;
+        const term = filter.value.trim().toLowerCase();
+        let shown = 0;
+        items().forEach((item) => {
+          item.hidden = !item.querySelector('.quarantine-body').textContent.toLowerCase().includes(term);
+          if (!item.hidden) shown += 1;
+        });
+        noMatch.hidden = shown > 0 || items().length === 0;
+      }
+
+      filter?.addEventListener('input', applyFilter);
+
+      document.querySelectorAll('.quarantine-dismiss').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const item = button.closest('.quarantine-item');
+          button.disabled = true;
+          result.hidden = true;
+          try {
+            const response = await fetch('/api/admin/quarantine/' + encodeURIComponent(item.dataset.hash) + '/dismiss', {method: 'POST'});
+            if (!response.ok) {
+              const payload = await response.json().catch(() => ({}));
+              throw new Error(payload.detail || 'Unable to dismiss this item.');
+            }
+            item.remove();
+            const count = items().length;
+            document.getElementById('held-title').textContent = count + (count === 1 ? ' item' : ' items') + ' in quarantine';
+            document.querySelector('.hero').classList.toggle('has-issues', count > 0);
+            document.getElementById('quarantine-empty').hidden = count > 0;
+            if (filter) filter.closest('label').hidden = count === 0;
+            applyFilter();
+          } catch (error) {
+            button.disabled = false;
+            result.hidden = false;
+            result.className = 'setup-result error';
+            const title = document.createElement('strong');
+            title.textContent = 'Dismiss failed';
+            const detail = document.createElement('span');
+            detail.textContent = error.message;
+            result.replaceChildren(title, detail);
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
