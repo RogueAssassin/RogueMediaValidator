@@ -57,7 +57,32 @@ body {
 .provider-card:hover:not(:disabled) { border-color: var(--accent-line); }
 #activity { scroll-margin-top: 90px; }
 
+/* Fact grids and stat tiles fill the last row instead of leaving an empty block. */
+.facts { display: flex; flex-wrap: wrap; }
+.facts > div { flex: 1 1 160px; }
+.facts.compact > div { flex-basis: 40%; }
+@media (max-width: 900px) { .metric:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+
+/* Quarantine review */
+[hidden] { display: none !important; }
+.quarantine-search { margin-bottom: 12px; }
+.quarantine-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.quarantine-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 14px; }
+.quarantine-body h2 { margin: 0 0 6px; font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+.quarantine-reason { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 12px; padding: 5px 10px; border-radius: 9px; background: var(--red-soft); color: var(--red); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.quarantine-reason span { min-width: 0; }
+.quarantine-meta { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 0; }
+.quarantine-meta div { min-width: 0; }
+.quarantine-meta dt { font-size: 11px; color: var(--muted); }
+.quarantine-meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.quarantine-empty { display: grid; justify-items: center; gap: 8px; padding: 44px 18px; text-align: center; }
+.quarantine-empty .title-icon { width: 56px; height: 56px; border-radius: var(--r-lg); }
+.quarantine-empty h2, .quarantine-empty p { margin: 0; }
+.quarantine-empty p { color: var(--muted2); max-width: 520px; overflow-wrap: anywhere; }
+
 @media (max-width: 620px) {
+  .quarantine-item { grid-template-columns: minmax(0, 1fr); }
+  .quarantine-item > .title-icon { display: none; }
   .hero { padding: 18px; }
   .hero h1 { font-size: 1.25rem; }
   .metric-icon { width: 28px; height: 28px; top: 10px; right: 10px; }

@@ -53,9 +53,9 @@
           <div><dt>Mode</dt><dd>{{ 'Dry run' if settings.dry_run else 'Enforcing' }}</dd></div>
           <div><dt>Quarantine</dt><dd>{{ 'Enabled' if settings.quarantine_rejected else 'Disabled' }}</dd></div>
         </dl>
-        {% if settings.quarantine_rejected %}
+        {% if settings.quarantine_rejected or health.diagnostics.quarantined %}
         <div class="settings-inline-actions">
-          <a class="text-link" href="/api/quarantine" target="_blank" rel="noopener">Review quarantined items</a>
+          <a class="text-link" href="/quarantine">Review quarantined items</a>
         </div>
         {% endif %}
       </section>
@@ -224,15 +224,28 @@
   </div>
 
   <script>
+    // Result panels are built with textContent: names and errors come from remote services.
+    function showResult(node, kind, title, lines) {
+      node.hidden = false;
+      node.className = 'setup-result ' + kind;
+      const heading = document.createElement('strong');
+      heading.textContent = title;
+      node.replaceChildren(heading, ...lines.map((line) => {
+        const detail = document.createElement('span');
+        detail.textContent = line;
+        return detail;
+      }));
+    }
+  </script>
+
+  <script>
     const notificationButton = document.getElementById('notification-test');
     const notificationResult = document.getElementById('notification-result');
     const auditPruneButton = document.getElementById('audit-prune');
     const auditResult = document.getElementById('audit-result');
 
     notificationButton?.addEventListener('click', async () => {
-      notificationResult.hidden = false;
-      notificationResult.className = 'setup-result working';
-      notificationResult.innerHTML = '<strong>Testing…</strong><span>Checking configured notification targets.</span>';
+      showResult(notificationResult, 'working', 'Testing…', ['Checking configured notification targets.']);
       try {
         const response = await fetch('/api/admin/notifications/test', {method: 'POST'});
         const payload = await response.json();
@@ -240,27 +253,21 @@
         const lines = payload.results.map((item) =>
           item.name + ': ' + (item.ok ? 'OK' : 'FAILED - ' + item.error)
         );
-        notificationResult.className = payload.results.every((item) => item.ok) ? 'setup-result success' : 'setup-result error';
-        notificationResult.innerHTML = '<strong>Notification test complete</strong><span>' + (lines.join('<br>') || 'No targets configured.') + '</span>';
+        showResult(notificationResult, payload.results.every((item) => item.ok) ? 'success' : 'error', 'Notification test complete', lines.length ? lines : ['No targets configured.']);
       } catch (error) {
-        notificationResult.className = 'setup-result error';
-        notificationResult.innerHTML = '<strong>Test failed</strong><span>' + error.message + '</span>';
+        showResult(notificationResult, 'error', 'Test failed', [error.message]);
       }
     });
 
     auditPruneButton?.addEventListener('click', async () => {
-      auditResult.hidden = false;
-      auditResult.className = 'setup-result working';
-      auditResult.innerHTML = '<strong>Cleaning…</strong><span>Applying audit retention settings.</span>';
+      showResult(auditResult, 'working', 'Cleaning…', ['Applying audit retention settings.']);
       try {
         const response = await fetch('/api/admin/audit/prune', {method: 'POST'});
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.detail || 'Audit cleanup failed.');
-        auditResult.className = 'setup-result success';
-        auditResult.innerHTML = '<strong>Cleanup complete</strong><span>Removed ' + payload.deleted_total + ' validation records.</span>';
+        showResult(auditResult, 'success', 'Cleanup complete', ['Removed ' + payload.deleted_total + ' validation records.']);
       } catch (error) {
-        auditResult.className = 'setup-result error';
-        auditResult.innerHTML = '<strong>Cleanup failed</strong><span>' + error.message + '</span>';
+        showResult(auditResult, 'error', 'Cleanup failed', [error.message]);
       }
     });
 
@@ -268,9 +275,7 @@
     const automationResult = document.getElementById('automation-result');
 
     automationButton?.addEventListener('click', async () => {
-      automationResult.hidden = false;
-      automationResult.className = 'setup-result working';
-      automationResult.innerHTML = '<strong>Testing…</strong><span>Checking configured automation providers.</span>';
+      showResult(automationResult, 'working', 'Testing…', ['Checking configured automation providers.']);
       try {
         const response = await fetch('/api/admin/automation/test', {method: 'POST'});
         const payload = await response.json();
@@ -278,11 +283,9 @@
         const lines = payload.results.map((item) =>
           item.instance + ': ' + (item.ok ? 'OK (' + item.version + ')' : 'FAILED - ' + item.error)
         );
-        automationResult.className = payload.results.every((item) => item.ok) ? 'setup-result success' : 'setup-result error';
-        automationResult.innerHTML = '<strong>Integration test complete</strong><span>' + (lines.join('<br>') || 'No providers configured.') + '</span>';
+        showResult(automationResult, payload.results.every((item) => item.ok) ? 'success' : 'error', 'Integration test complete', lines.length ? lines : ['No providers configured.']);
       } catch (error) {
-        automationResult.className = 'setup-result error';
-        automationResult.innerHTML = '<strong>Test failed</strong><span>' + error.message + '</span>';
+        showResult(automationResult, 'error', 'Test failed', [error.message]);
       }
     });
   </script>
@@ -295,9 +298,7 @@
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const scopes = [...form.querySelectorAll('input[name="scope"]:checked')].map((input) => input.value);
-      result.hidden = false;
-      result.className = 'setup-result working';
-      result.innerHTML = '<strong>Saving…</strong><span>Updating managed scopes.</span>';
+      showResult(result, 'working', 'Saving…', ['Updating managed scopes.']);
 
       try {
         const response = await fetch('/api/admin/scopes', {
@@ -308,13 +309,11 @@
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.detail || 'Unable to save managed scopes.');
 
-        result.className = 'setup-result success';
-        result.innerHTML = '<strong>Saved</strong><span>' +
-          (payload.managed_scopes.length ? 'Managed: ' + payload.managed_scopes.join(', ') : 'No scopes managed — RMV is fail-closed.') +
-          '</span>';
+        showResult(result, 'success', 'Saved', [
+          payload.managed_scopes.length ? 'Managed: ' + payload.managed_scopes.join(', ') : 'No scopes managed — RMV is fail-closed.',
+        ]);
       } catch (error) {
-        result.className = 'setup-result error';
-        result.innerHTML = '<strong>Save failed</strong><span>' + error.message + '</span>';
+        showResult(result, 'error', 'Save failed', [error.message]);
       }
     });
   </script>

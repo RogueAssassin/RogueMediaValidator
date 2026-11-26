@@ -293,6 +293,24 @@ class Store:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def quarantine_held(self, limit: int = 500) -> list[dict]:
+        with self._connect() as db:
+            db.row_factory = sqlite3.Row
+            rows = db.execute(
+                "SELECT * FROM quarantine WHERE state='held' ORDER BY updated_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def quarantine_dismiss(self, torrent_hash: str) -> bool:
+        """Clear a held record from review. The torrent itself is not touched."""
+        with self._connect() as db:
+            cursor = db.execute(
+                "UPDATE quarantine SET state='dismissed' WHERE torrent_hash=? AND state='held'",
+                (torrent_hash,),
+            )
+            return cursor.rowcount > 0
+
     def quarantine_count(self) -> int:
         with self._connect() as db:
             row = db.execute(

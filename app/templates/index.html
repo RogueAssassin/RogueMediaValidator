@@ -45,7 +45,7 @@
       {% elif not health.diagnostics.managed_scopes %}
         {% set title, detail, issue, href, label = 'Nothing is being validated', 'No ' ~ health.diagnostics.scope_name ~ ' are managed. Choose which ones to protect.', true, '/settings', 'Choose ' ~ health.diagnostics.scope_name %}
       {% elif stats.quarantined %}
-        {% set title, detail, issue, href, label = stats.quarantined ~ ' quarantined for review', 'Held items are waiting for an operator decision.', true, '/api/quarantine', 'Review quarantine' %}
+        {% set title, detail, issue, href, label = stats.quarantined ~ ' quarantined for review', 'Held items are waiting for an operator decision.', true, '/quarantine', 'Review quarantine' %}
       {% elif settings.dry_run %}
         {% set title, detail, issue, href, label = 'Watching in dry run', 'Payloads are checked and recorded, but nothing is removed.', false, '#activity', 'View activity' %}
       {% else %}
