@@ -34,7 +34,7 @@ templates = Jinja2Templates(directory="app/templates")
 def asset_version() -> str:
     """Version plus a short content hash, so browsers and CDNs fetch new CSS/JS after any update."""
     digest = hashlib.sha256()
-    for name in ("app.css", "rogue-theme.js"):
+    for name in ("app.css", "ui.css", "rogue-theme.js"):
         try:
             with open(f"app/static/{name}", "rb") as handle:
                 digest.update(handle.read())

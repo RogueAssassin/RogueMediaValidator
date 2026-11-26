@@ -82,6 +82,8 @@ def test_dashboard_template_renders_with_generic_client_context():
     assert "Delete payload data" in rendered
     assert "Quarantined" in rendered
     assert "Quarantine mode" in rendered
+    assert "1 quarantined for review" in rendered
+    assert '<svg class="rmv-i"' in rendered
 
 
 def test_setup_template_lists_all_supported_providers():

@@ -1,3 +1,4 @@
+{% from "_icons.html" import icon %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,6 +10,7 @@
   <link rel="apple-touch-icon" href="/static/icons/roguemediavalidator-approved-128.png">
   <script src="/static/rogue-theme.js?v={{ asset_version }}"></script>
   <link rel="stylesheet" href="/static/app.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="/static/ui.css?v={{ asset_version }}">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -23,7 +25,7 @@
       </div>
       <nav class="topbar-actions" aria-label="Primary navigation">
         <span class="version">v{{ version }}</span>
-        {% if configured %}<a class="button secondary" href="/">Back to dashboard</a>{% endif %}
+        {% if configured %}<a class="button secondary" href="/">{{ icon('home') }}Back to dashboard</a>{% endif %}
         <div data-rogue-theme-menu></div>
       </nav>
     </header>

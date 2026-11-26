@@ -1,0 +1,66 @@
+/* RogueMediaValidator 1.5 interface layer, matching RogueForge and RogueDashboard 2.6. Loaded last:
+   component styling on top of the colour tokens in app.css. */
+:root, :root[data-theme="default"], :root[data-theme="dark"] {
+  --accent: #ff7a59; --accent-hover: #ff9478; --violet: #a78bfa; --info: #6cb6ff;
+  --accent-soft: rgba(255,122,89,.14); --accent-line: rgba(255,122,89,.42);
+  --grad: linear-gradient(135deg, #d6451f, #c2276b 55%, #6d3fd9);
+  --grad-alert: linear-gradient(135deg, #a3271d, #8f1f45 60%, #4c2a86);
+  --grad-soft: linear-gradient(135deg, rgba(255,122,89,.18), rgba(139,92,246,.14));
+  --elev: 0 1px 2px rgba(0,0,0,.25), 0 14px 34px -20px rgba(0,0,0,.65);
+  --r-lg: 18px; --r-md: 12px;
+}
+:root[data-theme="light"] {
+  --accent: #a33b17; --accent-hover: #872f10; --accent-ink: #ffffff; --violet: #5b34c4; --info: #1d5a99;
+  --accent-soft: rgba(163,59,23,.11); --accent-line: rgba(163,59,23,.42);
+  --grad-soft: linear-gradient(135deg, rgba(214,69,31,.12), rgba(109,63,217,.1));
+  --elev: 0 1px 2px rgba(15,26,46,.07), 0 14px 30px -22px rgba(15,26,46,.35);
+}
+.topbar { --accent: #ff7a59; }
+.rmv-i { flex: none; display: block; }
+body {
+  background-image:
+    radial-gradient(900px 420px at 85% -10%, color-mix(in srgb, #8b5cf6 14%, transparent), transparent 70%),
+    radial-gradient(700px 380px at 15% -15%, color-mix(in srgb, #ff7a59 10%, transparent), transparent 70%);
+  background-repeat: no-repeat;
+}
+
+/* Buttons */
+.button { gap: 7px; border-radius: 10px; white-space: nowrap; transition: background-color .15s, border-color .15s, transform .12s, filter .15s; }
+.button:hover:not(:disabled) { transform: translateY(-1px); }
+.button:active:not(:disabled) { transform: none; }
+.button.primary, .button.primary:hover:not(:disabled) { background: var(--grad); border-color: transparent; color: #fff; }
+.button.primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+/* Status banner */
+.hero { position: relative; overflow: hidden; align-items: center; flex-wrap: wrap; gap: 14px; margin: 0 0 16px; padding: 22px 26px; border-radius: var(--r-lg); background: var(--grad); color: #fff; box-shadow: var(--elev); }
+.hero::after { content: ""; position: absolute; right: -60px; top: -110px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.12); pointer-events: none; }
+.hero.has-issues { background: var(--grad-alert); }
+.hero .eyebrow, .hero p:last-child { color: rgba(255,255,255,.92); }
+.hero h1 { font-size: 1.5rem; color: #fff; }
+.hero-action { position: relative; z-index: 1; display: inline-flex; align-items: center; min-height: 38px; padding: 0 16px; border-radius: 10px; background: #fff; color: #8f1f52; font-size: .82rem; font-weight: 650; text-decoration: none; }
+.hero-action:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* Stat tiles */
+.metric { --tone: var(--accent); position: relative; border-radius: var(--r-lg); box-shadow: var(--elev); }
+.metric-icon { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: var(--tone); background: color-mix(in srgb, var(--tone) 16%, transparent); }
+.metric:nth-child(1) { --tone: var(--info); }
+.metric:nth-child(2) { --tone: var(--green); }
+.metric:nth-child(3) { --tone: var(--red); }
+.metric:nth-child(4) { --tone: var(--amber); }
+.metric:nth-child(5) { --tone: var(--violet); }
+
+/* Panels */
+.panel { border-radius: var(--r-lg); box-shadow: var(--elev); }
+.title-lead { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.title-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--grad-soft); color: var(--accent); }
+.provider-card, .scope-option, .setup-step, .setup-result { border-radius: var(--r-md); }
+.provider-card:hover:not(:disabled) { border-color: var(--accent-line); }
+#activity { scroll-margin-top: 90px; }
+
+@media (max-width: 620px) {
+  .hero { padding: 18px; }
+  .hero h1 { font-size: 1.25rem; }
+  .metric-icon { width: 28px; height: 28px; top: 10px; right: 10px; }
+  /* Header links are icon-only on phones; the labels stay for screen readers. */
+  .topbar-actions a.button { width: 40px; padding: 0; gap: 0; font-size: 0; }
+}

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 - 2026-11-26
+
+New interface, matching RogueForge and RogueDashboard.
+
+- A status banner at the top of the dashboard says whether protection is active, in dry run, disconnected, unscoped or holding quarantined items, with a button to the relevant page.
+- One inline SVG icon set, restyled stat tiles, panels and buttons, and a brighter accent gradient in all themes.
+- On phones the header links are icon-only (labels stay for screen readers).
+- No new dependencies or external requests.
+
 ## 1.4.2 - 2026-11-24
 
 Hardening release.
